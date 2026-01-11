@@ -153,13 +153,12 @@ jobs:
           SHORT_SHA=$(echo $COMMIT_SHA | cut -c1-7)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          PREFIX="${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}"
           
-          # Build the image
-          yarn nx container ${{ matrix.service }} \
-            --tags ${REGISTRY}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:${SHORT_SHA} \
-            --tags ${REGISTRY}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:latest \
-            --tags ${REGISTRY}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:${TIMESTAMP} \
-            --push=${{ github.event_name != 'pull_request' }}
+          # Construct comma-separated list of tags
+          TAGS="${REGISTRY}/${PREFIX}:${SHORT_SHA},${REGISTRY}/${PREFIX}:latest,${REGISTRY}/${PREFIX}:${TIMESTAMP}"
+          
+          yarn nx container ${{ matrix.service }} --tags=$TAGS --push=${{ github.event_name != 'pull_request' }}
 
       - name: Scan image for vulnerabilities
         if: github.event_name != 'pull_request'
