@@ -60,28 +60,40 @@ jobs:
           elif [ "${{ github.event_name }}" == "pull_request" ]; then
             # For PRs, check which services changed
             CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-            SERVICES=""
-            for service in ui catalog cart orders checkout; do
-              if echo "$CHANGED_FILES" | grep -q "^src/$service/"; then
-                SERVICES="${SERVICES}${service},"
+            
+            # If workflow file changed, build all services
+            if echo "$CHANGED_FILES" | grep -q "^.github/workflows/build-push-images.yml"; then
+              SERVICES="ui,catalog,cart,orders,checkout"
+            else
+              SERVICES=""
+              for service in ui catalog cart orders checkout; do
+                if echo "$CHANGED_FILES" | grep -q "^src/$service/"; then
+                  SERVICES="${SERVICES}${service},"
+                fi
+              done
+              SERVICES=${SERVICES%,}  # Remove trailing comma
+              if [ -z "$SERVICES" ]; then
+                SERVICES="none"
               fi
-            done
-            SERVICES=${SERVICES%,}  # Remove trailing comma
-            if [ -z "$SERVICES" ]; then
-              SERVICES="none"
             fi
           else
             # For push to main, check which services changed
             CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
-            SERVICES=""
-            for service in ui catalog cart orders checkout; do
-              if echo "$CHANGED_FILES" | grep -q "^src/$service/"; then
-                SERVICES="${SERVICES}${service},"
+            
+            # If workflow file changed, build all services
+            if echo "$CHANGED_FILES" | grep -q "^.github/workflows/build-push-images.yml"; then
+              SERVICES="ui,catalog,cart,orders,checkout"
+            else
+              SERVICES=""
+              for service in ui catalog cart orders checkout; do
+                if echo "$CHANGED_FILES" | grep -q "^src/$service/"; then
+                  SERVICES="${SERVICES}${service},"
+                fi
+              done
+              SERVICES=${SERVICES%,}  # Remove trailing comma
+              if [ -z "$SERVICES" ]; then
+                SERVICES="none"
               fi
-            done
-            SERVICES=${SERVICES%,}  # Remove trailing comma
-            if [ -z "$SERVICES" ]; then
-              SERVICES="none"
             fi
           fi
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
