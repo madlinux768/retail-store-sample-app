@@ -127,7 +127,7 @@ jobs:
         run: |
           echo "Current directory: $(pwd)"
           echo "Checking for service directory..."
-          ls -la src/${{ matrix.service }}/
+          ls -la src/${{ matrix.service }}
           echo "Dockerfile exists:"
           ls -la src/${{ matrix.service }}/Dockerfile
 
