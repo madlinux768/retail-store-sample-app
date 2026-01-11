@@ -1,0 +1,215 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/cart/**'
+      - 'src/catalog/**'
+      - 'src/checkout/**'
+      - 'src/orders/**'
+      - 'src/ui/**'
+      - '.github/workflows/build-push-images.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/cart/**'
+      - 'src/catalog/**'
+      - 'src/checkout/**'
+      - 'src/orders/**'
+      - 'src/ui/**'
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to build (comma-separated: ui,catalog,cart,orders,checkout or "all")'
+        required: false
+        default: 'all'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY_PREFIX: retail-store
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.services }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed services
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.services }}" == "all" ]; then
+              SERVICES="ui,catalog,cart,orders,checkout"
+            else
+              SERVICES="${{ github.event.inputs.services }}"
+            fi
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PRs, check which services changed
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+            SERVICES=""
+            for service in ui catalog cart orders checkout; do
+              if echo "$CHANGED_FILES" | grep -q "^src/$service/"; then
+                SERVICES="${SERVICES}${service},"
+              fi
+            done
+            SERVICES=${SERVICES%,}  # Remove trailing comma
+            if [ -z "$SERVICES" ]; then
+              SERVICES="none"
+            fi
+          else
+            # For push to main, check which services changed
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            SERVICES=""
+            for service in ui catalog cart orders checkout; do
+              if echo "$CHANGED_FILES" | grep -q "^src/$service/"; then
+                SERVICES="${SERVICES}${service},"
+              fi
+            done
+            SERVICES=${SERVICES%,}  # Remove trailing comma
+            if [ -z "$SERVICES" ]; then
+              SERVICES="none"
+            fi
+          fi
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "Detected services: $SERVICES"
+
+      - name: Set matrix
+        id: set-matrix
+        run: |
+          SERVICES="${{ steps.filter.outputs.services }}"
+          if [ "$SERVICES" == "none" ]; then
+            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          else
+            # Convert comma-separated list to JSON array
+            MATRIX_JSON=$(echo "$SERVICES" | jq -R -s -c 'split(",") | map(select(length > 0)) | map({service: .})')
+            echo "matrix={\"include\":$MATRIX_JSON}" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-push:
+    name: Build ${{ matrix.service }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.services != 'none'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-BuildImages
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          # Generate image tags
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          
+          # Set tags based on event type
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            TAGS="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:pr-${{ github.event.pull_request.number }}"
+          else
+            TAGS="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:${COMMIT_SHA}"
+            TAGS="${TAGS},${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:latest"
+            TAGS="${TAGS},${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:${TIMESTAMP}"
+          fi
+          
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: src/${{ matrix.service }}
+          file: src/${{ matrix.service }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+
+      - name: Scan image for vulnerabilities
+        if: github.event_name != 'pull_request'
+        run: |
+          # Wait for scan to complete
+          aws ecr wait image-scan-complete \
+            --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }} \
+            --image-id imageTag=${{ steps.meta.outputs.commit_sha }} \
+            --region ${{ env.AWS_REGION }} || true
+
+          # Get scan findings
+          SCAN_FINDINGS=$(aws ecr describe-image-scan-findings \
+            --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }} \
+            --image-id imageTag=${{ steps.meta.outputs.commit_sha }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'imageScanFindings.findingSeverityCounts' \
+            --output json || echo '{}')
+
+          echo "Scan findings for ${{ matrix.service }}:"
+          echo "$SCAN_FINDINGS" | jq .
+
+          # Check for critical vulnerabilities
+          CRITICAL=$(echo "$SCAN_FINDINGS" | jq -r '.CRITICAL // 0')
+          HIGH=$(echo "$SCAN_FINDINGS" | jq -r '.HIGH // 0')
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::Found $CRITICAL CRITICAL vulnerabilities in ${{ matrix.service }}"
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            echo "::warning::Found $HIGH HIGH vulnerabilities in ${{ matrix.service }}"
+          fi
+
+      - name: Output image details
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "### Image Built Successfully :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Build Summary
+    needs: [detect-changes, build-and-push]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "### Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services processed:** ${{ needs.detect-changes.outputs.services }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ needs.build-and-push.result }}" >> $GITHUB_STEP_SUMMARY
