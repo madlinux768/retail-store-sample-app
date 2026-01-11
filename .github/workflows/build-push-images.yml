@@ -129,16 +129,18 @@ jobs:
         id: meta
         run: |
           # Generate image tags
-          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          REPO="${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}"
           
           # Set tags based on event type
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            TAGS="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:pr-${{ github.event.pull_request.number }}"
+            TAGS="${REGISTRY}/${REPO}:pr-${{ github.event.pull_request.number }}"
           else
-            TAGS="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:${COMMIT_SHA}"
-            TAGS="${TAGS},${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:latest"
-            TAGS="${TAGS},${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}:${TIMESTAMP}"
+            TAGS="${REGISTRY}/${REPO}:${COMMIT_SHA}"
+            TAGS="${TAGS},${REGISTRY}/${REPO}:latest"
+            TAGS="${TAGS},${REGISTRY}/${REPO}:${TIMESTAMP}"
           fi
           
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
