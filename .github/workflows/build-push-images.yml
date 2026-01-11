@@ -158,7 +158,9 @@ jobs:
           # Construct comma-separated list of tags
           TAGS="${REGISTRY}/${PREFIX}:${SHORT_SHA},${REGISTRY}/${PREFIX}:latest,${REGISTRY}/${PREFIX}:${TIMESTAMP}"
           
-          yarn nx container ${{ matrix.service }} --tags=$TAGS --push=${{ github.event_name != 'pull_request' }}
+          yarn nx container ${{ matrix.service }} \
+            --tags=$TAGS \
+            --push=${{ github.event_name != 'pull_request' }}
 
       - name: Scan image for vulnerabilities
         if: github.event_name != 'pull_request'
