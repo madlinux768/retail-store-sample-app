@@ -139,24 +139,14 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        run: |
-          # Generate image tags
-          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
-          REPO="${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}"
-          
-          # Set tags based on event type
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            TAGS="${REGISTRY}/${REPO}:pr-${{ github.event.pull_request.number }}"
-          else
-            TAGS="${REGISTRY}/${REPO}:${COMMIT_SHA}"
-            TAGS="${TAGS},${REGISTRY}/${REPO}:latest"
-            TAGS="${TAGS},${REGISTRY}/${REPO}:${TIMESTAMP}"
-          fi
-          
-          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-          echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+            type=ref,event=pr,prefix=pr-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -166,26 +156,26 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          labels: |
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
 
       - name: Scan image for vulnerabilities
         if: github.event_name != 'pull_request'
         run: |
+          # Extract commit SHA for image tag
+          COMMIT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          
           # Wait for scan to complete
           aws ecr wait image-scan-complete \
             --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }} \
-            --image-id imageTag=${{ steps.meta.outputs.commit_sha }} \
+            --image-id imageTag=${COMMIT_SHA} \
             --region ${{ env.AWS_REGION }} || true
 
           # Get scan findings
           SCAN_FINDINGS=$(aws ecr describe-image-scan-findings \
             --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }} \
-            --image-id imageTag=${{ steps.meta.outputs.commit_sha }} \
+            --image-id imageTag=${COMMIT_SHA} \
             --region ${{ env.AWS_REGION }} \
             --query 'imageScanFindings.findingSeverityCounts' \
             --output json || echo '{}')
