@@ -17,7 +17,7 @@ provider "aws" {
       Environment = var.environment_name
       Project     = "retail-store"
       ManagedBy   = "Terraform"
-      auto-delete = "yes"
+      auto-delete = "no"
     }
   }
 }
