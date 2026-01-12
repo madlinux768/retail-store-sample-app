@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.28"
     }
   }
 }
@@ -22,6 +22,21 @@ provider "aws" {
   }
 }
 
+data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current" {}
+
+locals {
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
+  
+  container_images = {
+    ui       = "${var.container_image_repository}-ui:${var.container_image_tag}"
+    catalog  = "${var.container_image_repository}-catalog:${var.container_image_tag}"
+    cart     = "${var.container_image_repository}-cart:${var.container_image_tag}"
+    orders   = "${var.container_image_repository}-orders:${var.container_image_tag}"
+    checkout = "${var.container_image_repository}-checkout:${var.container_image_tag}"
+  }
+}
+
 module "tags" {
   source = "../../lib/tags"
 
@@ -35,6 +50,28 @@ module "vpc" {
   tags             = module.tags.result
 }
 
+# Security Group for Database Access
+resource "aws_security_group" "database_clients" {
+  name        = "${var.environment_name}-database-clients"
+  description = "Security group for services accessing databases"
+  vpc_id      = module.vpc.inner.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound"
+  }
+
+  tags = merge(
+    module.tags.result,
+    {
+      Name = "${var.environment_name}-database-clients"
+    }
+  )
+}
+
 module "dependencies" {
   source = "../../lib/dependencies"
 
@@ -44,21 +81,9 @@ module "dependencies" {
   vpc_id     = module.vpc.inner.vpc_id
   subnet_ids = module.vpc.inner.private_subnets
 
-  catalog_security_group_id  = aws_security_group.catalog.id
-  orders_security_group_id   = aws_security_group.orders.id
-  checkout_security_group_id = aws_security_group.checkout.id
-}
-
-# ECS Cluster
-resource "aws_ecs_cluster" "this" {
-  name = "${var.environment_name}-cluster"
-
-  setting {
-    name  = "containerInsights"
-    value = var.container_insights_setting
-  }
-
-  tags = module.tags.result
+  catalog_security_group_id  = aws_security_group.database_clients.id
+  orders_security_group_id   = aws_security_group.database_clients.id
+  checkout_security_group_id = aws_security_group.database_clients.id
 }
 
 # CloudWatch Log Group
@@ -78,21 +103,19 @@ resource "aws_service_discovery_private_dns_namespace" "this" {
   tags = module.tags.result
 }
 
-# IAM Role for ECS Managed Instances Infrastructure
+# IAM Role for ECS Infrastructure
 resource "aws_iam_role" "ecs_infrastructure" {
   name = "${var.environment_name}-ecs-infrastructure"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs.amazonaws.com"
       }
-    ]
+      Action = "sts:AssumeRole"
+    }]
   })
 
   tags = module.tags.result
@@ -103,21 +126,19 @@ resource "aws_iam_role_policy_attachment" "ecs_infrastructure" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRolePolicyForManagedInstances"
 }
 
-# IAM Instance Profile for ECS Managed Instances
+# IAM Instance Profile
 resource "aws_iam_role" "ecs_instance" {
   name = "${var.environment_name}-ecs-instance"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
       }
-    ]
+      Action = "sts:AssumeRole"
+    }]
   })
 
   tags = module.tags.result
@@ -145,156 +166,69 @@ resource "aws_iam_instance_profile" "ecs" {
   tags = module.tags.result
 }
 
-# ECS Managed Instances Capacity Provider
-resource "aws_ecs_capacity_provider" "managed_instances" {
-  name = "${var.environment_name}-managed-instances"
+# ECS Cluster with Managed Instances
+module "ecs_cluster" {
+  source  = "terraform-aws-modules/ecs/aws//modules/cluster"
+  version = "~> 7.1"
 
-  managed_instance_scaling {
-    instance_warmup_period    = 60
-    minimum_scaling_step_size = 1
-    maximum_scaling_step_size = 10
-    status                    = "ENABLED"
-    target_capacity           = 80
-  }
+  name = "${var.environment_name}-cluster"
 
-  managed_instance_requirements {
-    instance_profile = aws_iam_instance_profile.ecs.arn
-    instance_types   = var.instance_types
+  setting = [{
+    name  = "containerInsights"
+    value = var.container_insights_setting
+  }]
 
-    network_configuration {
-      security_group_ids = [aws_security_group.ecs_instances.id]
-      subnet_ids         = module.vpc.inner.private_subnets
+  capacity_providers = {
+    managed-instances = {
+      managed_instances_provider = {
+        instance_launch_template = {
+          ec2_instance_profile_arn = aws_iam_instance_profile.ecs.arn
+
+          instance_requirements = {
+            instance_generations = ["current"]
+
+            memory_mib = {
+              min = 2048
+              max = 8192
+            }
+
+            vcpu_count = {
+              min = 1
+              max = 4
+            }
+          }
+
+          network_configuration = {
+            subnets = module.vpc.inner.private_subnets
+          }
+
+          storage_configuration = {
+            storage_size_gib = 30
+          }
+        }
+
+        infrastructure_role_arn = aws_iam_role.ecs_infrastructure.arn
+      }
     }
   }
 
-  managed_infrastructure {
-    infrastructure_role_arn = aws_iam_role.ecs_infrastructure.arn
+  vpc_id = module.vpc.inner.vpc_id
+  security_group_ingress_rules = {
+    all_traffic = {
+      from_port   = 0
+      to_port     = 65535
+      ip_protocol = "tcp"
+      cidr_ipv4   = module.vpc.inner.vpc_cidr_block
+      description = "Allow all TCP traffic within VPC"
+    }
+  }
+  security_group_egress_rules = {
+    all = {
+      cidr_ipv4   = "0.0.0.0/0"
+      ip_protocol = "-1"
+      description = "Allow all outbound"
+    }
   }
 
   tags = module.tags.result
 }
-
-# Attach capacity provider to cluster
-resource "aws_ecs_cluster_capacity_providers" "this" {
-  cluster_name = aws_ecs_cluster.this.name
-
-  capacity_providers = [aws_ecs_capacity_provider.managed_instances.name]
-
-  default_capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.managed_instances.name
-    weight            = 1
-    base              = 1
-  }
-}
-
-# Security Group for ECS Instances
-resource "aws_security_group" "ecs_instances" {
-  name        = "${var.environment_name}-ecs-instances"
-  description = "Security group for ECS Managed Instances"
-  vpc_id      = module.vpc.inner.vpc_id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
-  }
-
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-ecs-instances"
-    }
-  )
-}
-
-# Security Groups for Services
-resource "aws_security_group" "catalog" {
-  name        = "${var.environment_name}-catalog"
-  description = "Security group for catalog service"
-  vpc_id      = module.vpc.inner.vpc_id
-
-  ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_instances.id]
-    description     = "Allow traffic from ECS instances"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
-  }
-
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-catalog"
-    }
-  )
-}
-
-resource "aws_security_group" "orders" {
-  name        = "${var.environment_name}-orders"
-  description = "Security group for orders service"
-  vpc_id      = module.vpc.inner.vpc_id
-
-  ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_instances.id]
-    description     = "Allow traffic from ECS instances"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
-  }
-
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-orders"
-    }
-  )
-}
-
-resource "aws_security_group" "checkout" {
-  name        = "${var.environment_name}-checkout"
-  description = "Security group for checkout service"
-  vpc_id      = module.vpc.inner.vpc_id
-
-  ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_instances.id]
-    description     = "Allow traffic from ECS instances"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
-  }
-
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-checkout"
-    }
-  )
-}
-
-data "aws_caller_identity" "current" {}

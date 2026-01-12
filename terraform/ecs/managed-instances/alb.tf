@@ -1,102 +1,67 @@
-# Application Load Balancer
-resource "aws_lb" "this" {
-  name               = "${var.environment_name}-alb"
-  internal           = false
+module "alb" {
+  source  = "terraform-aws-modules/alb/aws"
+  version = "~> 10.0"
+
+  name = "${var.environment_name}-alb"
+
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = module.vpc.inner.public_subnets
+
+  vpc_id  = module.vpc.inner.vpc_id
+  subnets = module.vpc.inner.public_subnets
 
   enable_deletion_protection = false
-  enable_http2               = true
 
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-alb"
+  security_group_ingress_rules = {
+    all_http = {
+      from_port   = 80
+      to_port     = 80
+      ip_protocol = "tcp"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "Allow HTTP from internet"
     }
-  )
-}
-
-# ALB Security Group
-resource "aws_security_group" "alb" {
-  name        = "${var.environment_name}-alb"
-  description = "Security group for Application Load Balancer"
-  vpc_id      = module.vpc.inner.vpc_id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow HTTP from internet"
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = module.vpc.inner.vpc_cidr_block
+      description = "Allow all to VPC"
+    }
   }
 
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-alb"
+  listeners = {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+
+      forward = {
+        target_group_key = "ui"
+      }
     }
-  )
-}
-
-# Allow ALB to reach ECS instances
-resource "aws_security_group_rule" "alb_to_ecs" {
-  type                     = "ingress"
-  from_port                = 8080
-  to_port                  = 8080
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.alb.id
-  security_group_id        = aws_security_group.ecs_instances.id
-  description              = "Allow ALB to reach ECS tasks"
-}
-
-# Target Group for UI
-resource "aws_lb_target_group" "ui" {
-  name        = "${var.environment_name}-ui"
-  port        = 8080
-  protocol    = "HTTP"
-  vpc_id      = module.vpc.inner.vpc_id
-  target_type = "ip"
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
-    path                = "/actuator/health"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 3
   }
 
-  deregistration_delay = 30
+  target_groups = {
+    ui = {
+      backend_protocol                  = "HTTP"
+      backend_port                      = 8080
+      target_type                       = "ip"
+      deregistration_delay              = 30
+      load_balancing_cross_zone_enabled = true
 
-  tags = merge(
-    module.tags.result,
-    {
-      Name = "${var.environment_name}-ui"
+      health_check = {
+        enabled             = true
+        healthy_threshold   = 2
+        interval            = 30
+        matcher             = "200"
+        path                = "/actuator/health"
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        timeout             = 5
+        unhealthy_threshold = 3
+      }
+
+      create_attachment = false
     }
-  )
-}
-
-# ALB Listener
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ui.arn
   }
 
   tags = module.tags.result
