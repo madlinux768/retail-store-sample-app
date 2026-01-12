@@ -56,14 +56,39 @@ jobs:
         working-directory: terraform/ecs/managed-instances
         run: terraform init
 
+      - name: Get ECR repository URL
+        id: ecr
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/retail-store"
+          echo "repository_url=${ECR_URL}" >> $GITHUB_OUTPUT
+          echo "ECR Repository: ${ECR_URL}"
+
       - name: Terraform Plan
         id: plan
         working-directory: terraform/ecs/managed-instances
+        env:
+          TF_VAR_container_image_repository: ${{ steps.ecr.outputs.repository_url }}
         run: |
+          set +e
           terraform plan \
+            -input=false \
             -var="container_image_tag=${{ github.event.inputs.image_tag }}" \
             -out=tfplan \
-            -detailed-exitcode || echo "exitcode=$?" >> $GITHUB_OUTPUT
+            -detailed-exitcode
+          exitcode=$?
+          set -e
+          
+          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+          
+          if [ "$exitcode" -eq 1 ]; then
+            echo "::error::Terraform plan failed"
+            exit 1
+          elif [ "$exitcode" -eq 2 ]; then
+            echo "::notice::Changes detected, apply needed"
+          else
+            echo "::notice::No changes detected"
+          fi
 
       - name: Upload plan
         uses: actions/upload-artifact@v4
@@ -105,9 +130,19 @@ jobs:
         working-directory: terraform/ecs/managed-instances
         run: terraform init
 
+      - name: Get ECR repository URL
+        id: ecr
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/retail-store"
+          echo "repository_url=${ECR_URL}" >> $GITHUB_OUTPUT
+          echo "ECR Repository: ${ECR_URL}"
+
       - name: Terraform Apply
         working-directory: terraform/ecs/managed-instances
-        run: terraform apply tfplan
+        env:
+          TF_VAR_container_image_repository: ${{ steps.ecr.outputs.repository_url }}
+        run: terraform apply -input=false tfplan
 
       - name: Get outputs
         id: outputs
