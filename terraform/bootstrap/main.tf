@@ -163,6 +163,8 @@ resource "aws_iam_role_policy" "github_actions_deployment" {
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",
           "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
           "iam:CreatePolicy",
           "iam:DeletePolicy",
           "iam:GetPolicy",
@@ -175,6 +177,13 @@ resource "aws_iam_role_policy" "github_actions_deployment" {
           "iam:TagPolicy",
           "iam:UntagPolicy",
           "iam:CreateServiceLinkedRole",
+          "iam:CreateInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          # Service Discovery
+          "servicediscovery:*",
           # CloudWatch
           "logs:*",
           "cloudwatch:*",
