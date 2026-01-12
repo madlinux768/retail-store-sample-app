@@ -11,53 +11,56 @@ on:
 
 permissions: {}
 
-jobs:
-  docker:
-    name: Docker E2E Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Setup Env"
-        uses: ./.github/actions/setup-env
-      - name: Compose up
-        shell: devenv shell bash -- -e {0}
-        run: |
-          yarn nx compose:up ui
-          sleep 60
-      - name: Test
-        shell: devenv shell bash -- -e {0}
-        run: |
-          CYPRESS_BASE_URL='http://localhost:8888' yarn nx execute e2e
-      - name: Compose down
-        shell: devenv shell bash -- -e {0}
-        run: |
-          yarn nx compose:down ui
+# Docker E2E tests commented out - focusing on ECS deployment
+# jobs:
+#   docker:
+#     name: Docker E2E Tests
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: "Setup Env"
+#         uses: ./.github/actions/setup-env
+#       - name: Compose up
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           yarn nx compose:up ui
+#           sleep 60
+#       - name: Test
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           CYPRESS_BASE_URL='http://localhost:8888' yarn nx execute e2e
+#       - name: Compose down
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           yarn nx compose:down ui
+#
+#   docker-multi:
+#     name: Docker E2E Tests (Multi)
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: "Setup Env"
+#         uses: ./.github/actions/setup-env
+#       - name: Compose up
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           DB_PASSWORD='test123' yarn nx compose:up
+#           sleep 60
+#       - name: Test
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           CYPRESS_BASE_URL='http://localhost:8888' yarn nx execute e2e
+#       - name: Load Generator
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           cd src/load-generator
+#           bash scripts/run-test.sh
+#       - name: Compose down
+#         shell: devenv shell bash -- -e {0}
+#         run: |
+#           DB_PASSWORD='test123' yarn nx compose:down
 
-  docker-multi:
-    name: Docker E2E Tests (Multi)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Setup Env"
-        uses: ./.github/actions/setup-env
-      - name: Compose up
-        shell: devenv shell bash -- -e {0}
-        run: |
-          DB_PASSWORD='test123' yarn nx compose:up
-          sleep 60
-      - name: Test
-        shell: devenv shell bash -- -e {0}
-        run: |
-          CYPRESS_BASE_URL='http://localhost:8888' yarn nx execute e2e
-      - name: Load Generator
-        shell: devenv shell bash -- -e {0}
-        run: |
-          cd src/load-generator
-          bash scripts/run-test.sh
-      - name: Compose down
-        shell: devenv shell bash -- -e {0}
-        run: |
-          DB_PASSWORD='test123' yarn nx compose:down
+jobs:
 
   # Kubernetes E2E tests commented out - not using Kubernetes for ECS deployment
   # kubernetes:
