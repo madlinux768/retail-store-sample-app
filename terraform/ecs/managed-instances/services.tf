@@ -69,6 +69,19 @@ module "ui_service" {
 
   subnet_ids = module.vpc.inner.private_subnets
 
+  service_connect_configuration = {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.this.arn
+    service = [{
+      client_alias = {
+        dns_name = "ui"
+        port     = 80
+      }
+      discovery_name = "ui"
+      port_name      = "ui"
+    }]
+  }
+
   enable_execute_command = true
 
   tags = module.tags.result
@@ -136,6 +149,19 @@ module "catalog_service" {
 
   subnet_ids = module.vpc.inner.private_subnets
 
+  service_connect_configuration = {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.this.arn
+    service = [{
+      client_alias = {
+        dns_name = "catalog"
+        port     = 80
+      }
+      discovery_name = "catalog"
+      port_name      = "catalog"
+    }]
+  }
+
   enable_execute_command = true
 
   tags = module.tags.result
@@ -199,6 +225,19 @@ module "cart_service" {
   }
 
   subnet_ids = module.vpc.inner.private_subnets
+
+  service_connect_configuration = {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.this.arn
+    service = [{
+      client_alias = {
+        dns_name = "cart"
+        port     = 80
+      }
+      discovery_name = "cart"
+      port_name      = "cart"
+    }]
+  }
 
   tasks_iam_role_policies = {
     dynamodb = module.dependencies.carts_dynamodb_policy_arn
@@ -274,6 +313,19 @@ module "orders_service" {
 
   subnet_ids = module.vpc.inner.private_subnets
 
+  service_connect_configuration = {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.this.arn
+    service = [{
+      client_alias = {
+        dns_name = "orders"
+        port     = 80
+      }
+      discovery_name = "orders"
+      port_name      = "orders"
+    }]
+  }
+
   enable_execute_command = true
 
   tags = module.tags.result
@@ -338,6 +390,19 @@ module "checkout_service" {
   }
 
   subnet_ids = module.vpc.inner.private_subnets
+
+  service_connect_configuration = {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.this.arn
+    service = [{
+      client_alias = {
+        dns_name = "checkout"
+        port     = 80
+      }
+      discovery_name = "checkout"
+      port_name      = "checkout"
+    }]
+  }
 
   enable_execute_command = true
 
