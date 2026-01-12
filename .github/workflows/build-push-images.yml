@@ -102,13 +102,19 @@ jobs:
       - name: Set matrix
         id: set-matrix
         run: |
-          SERVICES="${{ steps.filter.outputs.services }}"
-          if [ "$SERVICES" == "none" ]; then
-            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          # Sanitize services string - remove CR/LF characters
+          SERVICES="$(printf '%s' "${{ steps.filter.outputs.services }}" | tr -d '\r\n')"
+          
+          if [ "$SERVICES" = "none" ] || [ -z "$SERVICES" ]; then
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
           else
-            # Convert comma-separated list to JSON array
-            MATRIX_JSON=$(echo "$SERVICES" | jq -R -s -c 'split(",") | map(select(length > 0)) | map({service: .})')
-            echo "matrix={\"include\":$MATRIX_JSON}" >> $GITHUB_OUTPUT
+            # Convert comma-separated list to JSON array with whitespace trimming
+            MATRIX_JSON="$(printf '%s' "$SERVICES" \
+              | jq -Rsc 'split(",") 
+                | map(gsub("^\\s+|\\s+$";"")) 
+                | map(select(length > 0)) 
+                | map({service: .})')"
+            echo "matrix={\"include\":$MATRIX_JSON}" >> "$GITHUB_OUTPUT"
           fi
 
   build-and-push:
@@ -149,21 +155,26 @@ jobs:
       - name: Build and push image
         env:
           COMMIT_SHA: ${{ github.sha }}
+          SERVICE_RAW: ${{ matrix.service }}
         run: |
           set -euo pipefail
+          
+          # Sanitize service name - remove any whitespace/newlines
+          SERVICE="$(printf '%s' "${SERVICE_RAW}" | tr -d '[:space:]')"
           
           SHORT_SHA="$(echo "${COMMIT_SHA}" | cut -c1-7)"
           TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
           REGISTRY="${{ steps.login-ecr.outputs.registry }}"
-          PREFIX="${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }}"
+          PREFIX="${{ env.ECR_REGISTRY_PREFIX }}-${SERVICE}"
           
           TAGS="${REGISTRY}/${PREFIX}:${SHORT_SHA},${REGISTRY}/${PREFIX}:latest,${REGISTRY}/${PREFIX}:${TIMESTAMP}"
           
+          echo "SERVICE=${SERVICE}"
           echo "REGISTRY=${REGISTRY}"
           echo "PREFIX=${PREFIX}"
           echo "TAGS=${TAGS}"
           
-          yarn nx container "${{ matrix.service }}" \
+          yarn nx container "${SERVICE}" \
             --tags="${TAGS}" \
             --push="${{ github.event_name != 'pull_request' }}"
 
@@ -171,22 +182,39 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           COMMIT_SHA: ${{ github.sha }}
+          SERVICE_RAW: ${{ matrix.service }}
         run: |
-          SHORT_SHA=$(echo $COMMIT_SHA | cut -c1-7)
+          # Sanitize service name
+          SERVICE="$(printf '%s' "${SERVICE_RAW}" | tr -d '[:space:]')"
+          SHORT_SHA="$(echo "${COMMIT_SHA}" | cut -c1-7)"
           
           # Wait for scan to complete
           aws ecr wait image-scan-complete \
-            --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }} \
+            --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${SERVICE} \
             --image-id imageTag=${SHORT_SHA} \
             --region ${{ env.AWS_REGION }} || true
-
+          
           # Get scan findings
           SCAN_FINDINGS=$(aws ecr describe-image-scan-findings \
-            --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${{ matrix.service }} \
+            --repository-name ${{ env.ECR_REGISTRY_PREFIX }}-${SERVICE} \
             --image-id imageTag=${SHORT_SHA} \
             --region ${{ env.AWS_REGION }} \
             --query 'imageScanFindings.findingSeverityCounts' \
             --output json || echo '{}')
+          
+          echo "Scan findings for ${SERVICE}:"
+          echo "$SCAN_FINDINGS" | jq .
+          
+          # Check for critical vulnerabilities
+          CRITICAL=$(echo "$SCAN_FINDINGS" | jq -r '.CRITICAL // 0')
+          HIGH=$(echo "$SCAN_FINDINGS" | jq -r '.HIGH // 0')
+          
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::warning::Found $CRITICAL CRITICAL vulnerabilities in ${SERVICE}"
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            echo "::warning::Found $HIGH HIGH vulnerabilities in ${SERVICE}"
+          fi
 
           echo "Scan findings for ${{ matrix.service }}:"
           echo "$SCAN_FINDINGS" | jq .
