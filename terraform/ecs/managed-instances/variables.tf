@@ -28,7 +28,7 @@ variable "container_insights_setting" {
 
   validation {
     condition     = contains(["enhanced", "disabled"], var.container_insights_setting)
-    error_message = "container_insights_setting must be either 'enhanced' or 'disabled'"
+    error_message = "The container_insights_setting must be either 'enhanced' or 'disabled'."
   }
 }
 
