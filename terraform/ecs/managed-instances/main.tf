@@ -121,9 +121,36 @@ resource "aws_iam_role" "ecs_infrastructure" {
   tags = module.tags.result
 }
 
-resource "aws_iam_role_policy_attachment" "ecs_infrastructure" {
-  role       = aws_iam_role.ecs_infrastructure.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRolePolicyForManagedInstances"
+resource "aws_iam_role_policy" "ecs_infrastructure" {
+  name = "ecs-infrastructure-permissions"
+  role = aws_iam_role.ecs_infrastructure.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceStatus",
+          "ec2:DescribeInstanceAttribute",
+          "ec2:DescribeTags",
+          "ecs:DescribeContainerInstances",
+          "ecs:DescribeTasks",
+          "ecs:ListTasks",
+          "ecs:UpdateContainerInstancesState",
+          "ecs:DeregisterContainerInstance",
+          "ecs:RegisterContainerInstance",
+          "ecs:SubmitContainerStateChange",
+          "ecs:SubmitTaskStateChange",
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeAutoScalingInstances",
+          "autoscaling:UpdateAutoScalingGroup"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 # IAM Instance Profile

@@ -180,8 +180,12 @@ resource "aws_iam_role_policy" "github_actions_deployment" {
           "iam:CreateInstanceProfile",
           "iam:DeleteInstanceProfile",
           "iam:GetInstanceProfile",
+          "iam:TagInstanceProfile",
+          "iam:UntagInstanceProfile",
           "iam:AddRoleToInstanceProfile",
           "iam:RemoveRoleFromInstanceProfile",
+          # Route53 (for Service Discovery)
+          "route53:*",
           # Service Discovery
           "servicediscovery:*",
           # CloudWatch
