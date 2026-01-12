@@ -12,6 +12,14 @@ module "ui_service" {
   cpu    = 1024
   memory = 2048
 
+  # IAM roles
+  create_tasks_iam_role                = true
+  tasks_iam_role_name                  = "${var.environment_name}-ui-task"
+  tasks_iam_role_use_name_prefix       = true
+  create_task_exec_iam_role            = true
+  task_exec_iam_role_name              = "${var.environment_name}-ui-exec"
+  task_exec_iam_role_use_name_prefix   = true
+
   container_definitions = {
     ui = {
       image     = local.container_images.ui
