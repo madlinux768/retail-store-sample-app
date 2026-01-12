@@ -1,0 +1,150 @@
+name: Deploy to ECS Managed Instances
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      image_tag:
+        description: 'Container image tag to deploy'
+        required: false
+        default: 'latest'
+      auto_approve:
+        description: 'Auto-approve terraform apply'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  TF_VERSION: '1.0'
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    outputs:
+      plan_exitcode: ${{ steps.plan.outputs.exitcode }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-TerraformPlan
+
+      - name: Terraform Init
+        working-directory: terraform/ecs/managed-instances
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: terraform/ecs/managed-instances
+        run: |
+          terraform plan \
+            -var="container_image_tag=${{ github.event.inputs.image_tag }}" \
+            -out=tfplan \
+            -detailed-exitcode || echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/ecs/managed-instances/tfplan
+          retention-days: 5
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    if: needs.terraform-plan.outputs.plan_exitcode == '2' || github.event.inputs.auto_approve == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-TerraformApply
+
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/ecs/managed-instances
+
+      - name: Terraform Init
+        working-directory: terraform/ecs/managed-instances
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: terraform/ecs/managed-instances
+        run: terraform apply tfplan
+
+      - name: Get outputs
+        id: outputs
+        working-directory: terraform/ecs/managed-instances
+        run: |
+          APP_URL=$(terraform output -raw application_url)
+          echo "application_url=${APP_URL}" >> $GITHUB_OUTPUT
+          echo "### Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** ${{ github.event.inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Application URL:** ${APP_URL}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Health check
+        run: |
+          APP_URL="${{ steps.outputs.outputs.application_url }}"
+          echo "Waiting for application to be healthy..."
+          for i in {1..30}; do
+            if curl -f -s "${APP_URL}" > /dev/null; then
+              echo "✓ Application is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: Not ready yet..."
+            sleep 10
+          done
+          echo "::warning::Application did not become healthy within 5 minutes"
+          exit 1
+
+  notify:
+    name: Notify
+    needs: [terraform-plan, terraform-apply]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Plan Status:** ${{ needs.terraform-plan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Apply Status:** ${{ needs.terraform-apply.result }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,17 @@
+# ECS Managed Instances Configuration
+environment_name = "retail-store-ecs-mi"
+aws_region       = "us-west-2"
+
+# Container Images - Update with your ECR repository
+container_image_repository = "173471018689.dkr.ecr.us-west-2.amazonaws.com/retail-store"
+container_image_tag        = "latest"
+
+# Monitoring
+container_insights_setting = "enhanced"
+opentelemetry_enabled      = false
+
+# Instance Configuration
+instance_types = ["t3.medium", "t3a.medium"]
+min_size       = 2
+max_size       = 10
+desired_size   = 3
