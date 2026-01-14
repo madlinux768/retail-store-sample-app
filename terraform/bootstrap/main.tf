@@ -204,12 +204,16 @@ resource "aws_iam_role_policy" "github_actions_deployment" {
           "kms:UntagResource",
           "kms:ListResourceTags",
           "kms:ListKeys",
+          "kms:GetKeyRotationStatus",
+          "kms:EnableKeyRotation",
+          "kms:DisableKeyRotation",
           "kms:ScheduleKeyDeletion",
           "kms:GetKeyPolicy",
           "kms:PutKeyPolicy",
           "kms:CreateAlias",
           "kms:DeleteAlias",
-          "kms:GenerateDataKey",
+          "kms:UpdateAlias",
+          "kms:ListAliases",
           # ELB
           "elasticloadbalancing:*",
           # Auto Scaling
