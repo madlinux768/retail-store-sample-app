@@ -199,6 +199,17 @@ resource "aws_iam_role_policy" "github_actions_deployment" {
           "kms:DescribeKey",
           "kms:Encrypt",
           "kms:GenerateDataKey",
+          "kms:CreateKey",
+          "kms:TagResource",
+          "kms:UntagResource",
+          "kms:ListResourceTags",
+          "kms:ListKeys",
+          "kms:ScheduleKeyDeletion",
+          "kms:GetKeyPolicy",
+          "kms:PutKeyPolicy",
+          "kms:CreateAlias",
+          "kms:DeleteAlias",
+          "kms:GenerateDataKey",
           # ELB
           "elasticloadbalancing:*",
           # Auto Scaling
