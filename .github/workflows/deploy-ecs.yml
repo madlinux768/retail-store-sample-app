@@ -174,21 +174,8 @@ jobs:
           echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Image Tag:** ${{ github.event.inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "**Application URL:** ${APP_URL}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Health check
-        run: |
-          APP_URL="${{ steps.outputs.outputs.application_url }}"
-          echo "Waiting for application to be healthy..."
-          for i in {1..30}; do
-            if curl -f -s "${APP_URL}" > /dev/null; then
-              echo "✓ Application is healthy!"
-              exit 0
-            fi
-            echo "Attempt $i/30: Not ready yet..."
-            sleep 10
-          done
-          echo "::warning::Application did not become healthy within 5 minutes"
-          exit 1
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** Application is protected by WAF IP allowlist. Access from authorized IPs only." >> $GITHUB_STEP_SUMMARY
 
   notify:
     name: Notify
