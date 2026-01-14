@@ -1,4 +1,4 @@
-name: Deploy to ECS Managed Instances
+name: Deploy to ECS Fargate
 
 on:
   workflow_dispatch:
@@ -29,6 +29,7 @@ permissions:
 env:
   AWS_REGION: us-west-2
   TF_VERSION: '1.9.0'
+  ECR_REGISTRY_PREFIX: retail-store
 
 jobs:
   terraform-plan:
@@ -53,27 +54,31 @@ jobs:
           role-session-name: GitHubActions-TerraformPlan
 
       - name: Terraform Init
-        working-directory: terraform/ecs/managed-instances
+        working-directory: terraform/ecs/default
         run: terraform init
 
-      - name: Get ECR repository URL
+      - name: Get ECR image URLs
         id: ecr
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/retail-store"
-          echo "repository_url=${ECR_URL}" >> $GITHUB_OUTPUT
-          echo "ECR Repository: ${ECR_URL}"
+          ECR_BASE="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          
+          echo "ui=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-ui:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "catalog=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-catalog:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "cart=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-cart:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "orders=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-orders:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "checkout=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-checkout:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Terraform Plan
         id: plan
-        working-directory: terraform/ecs/managed-instances
+        working-directory: terraform/ecs/default
         env:
-          TF_VAR_container_image_repository: ${{ steps.ecr.outputs.repository_url }}
+          TF_VAR_container_image_overrides: '{"ui":"${{ steps.ecr.outputs.ui }}","catalog":"${{ steps.ecr.outputs.catalog }}","cart":"${{ steps.ecr.outputs.cart }}","orders":"${{ steps.ecr.outputs.orders }}","checkout":"${{ steps.ecr.outputs.checkout }}"}'
         run: |
           set +e
           terraform plan \
             -input=false \
-            -var="container_image_tag=${{ github.event.inputs.image_tag }}" \
             -out=tfplan \
             -detailed-exitcode
           exitcode=$?
@@ -94,7 +99,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: terraform/ecs/managed-instances/tfplan
+          path: terraform/ecs/default/tfplan
           retention-days: 5
 
   terraform-apply:
@@ -124,29 +129,34 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: terraform/ecs/managed-instances
+          path: terraform/ecs/default
 
       - name: Terraform Init
-        working-directory: terraform/ecs/managed-instances
+        working-directory: terraform/ecs/default
         run: terraform init
 
-      - name: Get ECR repository URL
+      - name: Get ECR image URLs
         id: ecr
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/retail-store"
-          echo "repository_url=${ECR_URL}" >> $GITHUB_OUTPUT
-          echo "ECR Repository: ${ECR_URL}"
+          ECR_BASE="${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          
+          echo "ui=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-ui:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "catalog=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-catalog:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "cart=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-cart:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "orders=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-orders:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "checkout=${ECR_BASE}/${{ env.ECR_REGISTRY_PREFIX }}-checkout:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Terraform Apply
-        working-directory: terraform/ecs/managed-instances
+        working-directory: terraform/ecs/default
         env:
-          TF_VAR_container_image_repository: ${{ steps.ecr.outputs.repository_url }}
+          TF_VAR_container_image_overrides: '{"ui":"${{ steps.ecr.outputs.ui }}","catalog":"${{ steps.ecr.outputs.catalog }}","cart":"${{ steps.ecr.outputs.cart }}","orders":"${{ steps.ecr.outputs.orders }}","checkout":"${{ steps.ecr.outputs.checkout }}"}'
         run: terraform apply -input=false tfplan
 
       - name: Get outputs
         id: outputs
-        working-directory: terraform/ecs/managed-instances
+        working-directory: terraform/ecs/default
         run: |
           APP_URL=$(terraform output -raw application_url)
           echo "application_url=${APP_URL}" >> $GITHUB_OUTPUT

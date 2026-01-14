@@ -25,7 +25,7 @@ module "ui_service" {
       image     = local.container_images.ui
       essential = true
 
-      port_mappings = [{
+      portMappings = [{
         name          = "ui"
         containerPort = 8080
         protocol      = "tcp"
@@ -77,6 +77,14 @@ module "ui_service" {
 
   subnet_ids = module.vpc.inner.private_subnets
 
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "Allow all outbound traffic"
+    }
+  }
+
   service_connect_configuration = {
     enabled   = true
     namespace = aws_service_discovery_private_dns_namespace.this.arn
@@ -114,7 +122,7 @@ module "catalog_service" {
       image     = local.container_images.catalog
       essential = true
 
-      port_mappings = [{
+      portMappings = [{
         name          = "catalog"
         containerPort = 8080
         protocol      = "tcp"
@@ -157,6 +165,14 @@ module "catalog_service" {
 
   subnet_ids = module.vpc.inner.private_subnets
 
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "Allow all outbound traffic"
+    }
+  }
+
   service_connect_configuration = {
     enabled   = true
     namespace = aws_service_discovery_private_dns_namespace.this.arn
@@ -194,7 +210,7 @@ module "cart_service" {
       image     = local.container_images.cart
       essential = true
 
-      port_mappings = [{
+      portMappings = [{
         name          = "cart"
         containerPort = 8080
         protocol      = "tcp"
@@ -233,6 +249,14 @@ module "cart_service" {
   }
 
   subnet_ids = module.vpc.inner.private_subnets
+
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "Allow all outbound traffic"
+    }
+  }
 
   service_connect_configuration = {
     enabled   = true
@@ -275,7 +299,7 @@ module "orders_service" {
       image     = local.container_images.orders
       essential = true
 
-      port_mappings = [{
+      portMappings = [{
         name          = "orders"
         containerPort = 8080
         protocol      = "tcp"
@@ -321,6 +345,14 @@ module "orders_service" {
 
   subnet_ids = module.vpc.inner.private_subnets
 
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "Allow all outbound traffic"
+    }
+  }
+
   service_connect_configuration = {
     enabled   = true
     namespace = aws_service_discovery_private_dns_namespace.this.arn
@@ -358,7 +390,7 @@ module "checkout_service" {
       image     = local.container_images.checkout
       essential = true
 
-      port_mappings = [{
+      portMappings = [{
         name          = "checkout"
         containerPort = 8080
         protocol      = "tcp"
@@ -398,6 +430,14 @@ module "checkout_service" {
   }
 
   subnet_ids = module.vpc.inner.private_subnets
+
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+      description = "Allow all outbound traffic"
+    }
+  }
 
   service_connect_configuration = {
     enabled   = true
