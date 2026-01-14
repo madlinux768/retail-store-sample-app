@@ -75,7 +75,7 @@ locals {
       logDriver = "awslogs"
       options = {
         "awslogs-group"         = var.cloudwatch_logs_group_id
-        "awslogs-region"        = data.aws_region.current.name
+        "awslogs-region"        = data.aws_region.current.id
         "awslogs-stream-prefix" = "${var.service_name}-service"
       }
     }
@@ -108,7 +108,7 @@ locals {
       logDriver = "awslogs"
       options = {
         "awslogs-group"         = var.cloudwatch_logs_group_id
-        "awslogs-region"        = data.aws_region.current.name
+        "awslogs-region"        = data.aws_region.current.id
         "awslogs-stream-prefix" = "cloudwatch-agent"
       }
     }

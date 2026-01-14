@@ -52,9 +52,9 @@ resource "aws_iam_policy" "cloudwatch_logs" {
           "logs:DescribeLogGroups"
         ]
         Resource = [
-          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:*",
-          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:log-stream:*",
-          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/containerinsights/${var.environment_name}*:*"
+          "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:*",
+          "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:log-stream:*",
+          "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/containerinsights/${var.environment_name}*:*"
         ]
       }
     ]
@@ -93,8 +93,8 @@ resource "aws_iam_policy" "cloudwatch_agent" {
           "logs:DescribeLogGroups"
         ]
         Resource = [
-          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:*",
-          "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:log-stream:*"
+          "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:*",
+          "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:${var.cloudwatch_logs_group_id}:log-stream:*"
         ]
       }
     ]

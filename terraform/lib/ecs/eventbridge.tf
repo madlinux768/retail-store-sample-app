@@ -23,7 +23,7 @@ resource "aws_cloudwatch_event_rule" "ecs_events" {
   event_pattern = jsonencode({
     source = ["aws.ecs"]
     detail = {
-      clusterArn = ["arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${var.environment_name}-cluster"]
+      clusterArn = ["arn:aws:ecs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:cluster/${var.environment_name}-cluster"]
     }
   })
 }
