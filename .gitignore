@@ -31,3 +31,4 @@ devenv.local.nix
 .direnv
 
 .pre-commit-config.yamltemp/
+temp/
