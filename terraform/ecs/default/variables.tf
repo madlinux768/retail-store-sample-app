@@ -46,3 +46,15 @@ variable "lifecycle_events_enabled" {
     error_message = "lifecycle_events_enabled can only be true when container_insights_setting is 'enhanced'"
   }
 }
+
+
+variable "allowed_ips" {
+  type        = list(string)
+  description = "List of IP addresses (CIDR notation) allowed to access the application via ALB"
+  default     = []
+  
+  validation {
+    condition     = length(var.allowed_ips) > 0
+    error_message = "At least one IP address must be specified in allowed_ips"
+  }
+}

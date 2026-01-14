@@ -81,6 +81,7 @@ jobs:
         env:
           TF_VAR_container_image_overrides: '{"ui":"${{ steps.ecr.outputs.ui }}","catalog":"${{ steps.ecr.outputs.catalog }}","cart":"${{ steps.ecr.outputs.cart }}","orders":"${{ steps.ecr.outputs.orders }}","checkout":"${{ steps.ecr.outputs.checkout }}"}'
           TF_VAR_opentelemetry_enabled: ${{ github.event.inputs.opentelemetry_enabled }}
+          TF_VAR_allowed_ips: '["${{ secrets.ALLOWED_IP_ADDRESS }}"]'
         run: |
           set +e
           terraform plan \
@@ -159,6 +160,7 @@ jobs:
         env:
           TF_VAR_container_image_overrides: '{"ui":"${{ steps.ecr.outputs.ui }}","catalog":"${{ steps.ecr.outputs.catalog }}","cart":"${{ steps.ecr.outputs.cart }}","orders":"${{ steps.ecr.outputs.orders }}","checkout":"${{ steps.ecr.outputs.checkout }}"}'
           TF_VAR_opentelemetry_enabled: ${{ github.event.inputs.opentelemetry_enabled }}
+          TF_VAR_allowed_ips: '["${{ secrets.ALLOWED_IP_ADDRESS }}"]'
         run: terraform apply -input=false tfplan
 
       - name: Get outputs

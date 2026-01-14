@@ -216,6 +216,24 @@ resource "aws_iam_role_policy" "github_actions_deployment" {
           "kms:ListAliases",
           # ELB
           "elasticloadbalancing:*",
+          # WAF
+          "wafv2:CreateIPSet",
+          "wafv2:DeleteIPSet",
+          "wafv2:GetIPSet",
+          "wafv2:UpdateIPSet",
+          "wafv2:ListIPSets",
+          "wafv2:CreateWebACL",
+          "wafv2:DeleteWebACL",
+          "wafv2:GetWebACL",
+          "wafv2:UpdateWebACL",
+          "wafv2:ListWebACLs",
+          "wafv2:AssociateWebACL",
+          "wafv2:DisassociateWebACL",
+          "wafv2:ListResourcesForWebACL",
+          "wafv2:GetWebACLForResource",
+          "wafv2:TagResource",
+          "wafv2:UntagResource",
+          "wafv2:ListTagsForResource",
           # Auto Scaling
           "autoscaling:*",
           # CloudFormation (for EKS)

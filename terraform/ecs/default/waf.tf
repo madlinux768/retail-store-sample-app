@@ -7,12 +7,7 @@ resource "aws_wafv2_ip_set" "allowed_ips" {
   scope              = "REGIONAL"
   ip_address_version = "IPV4"
   
-  addresses = [
-    "47.149.71.130/32",  # Your IP
-    # Add additional IPs here as needed
-    # "10.0.0.0/8",      # Corporate network
-    # "192.168.1.0/24",  # VPN range
-  ]
+  addresses = var.allowed_ips
 
   tags = {
     Name                = "${var.environment_name}-allowed-ips"
