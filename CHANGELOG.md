@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.5.0](https://github.com/madlinux768/retail-store-sample-app/compare/v1.4.0...v1.5.0) (2026-04-13)
+
+
+### Features
+
+* **monitoring:** add comprehensive observability for ECS cluster ([62feecd](https://github.com/madlinux768/retail-store-sample-app/commit/62feecddc0722beede6ec2e5effe0e81c9f63060))
+* **monitoring:** enable Application Signals with ADOT auto-instrumentation ([3854d28](https://github.com/madlinux768/retail-store-sample-app/commit/3854d28547c9d5d5554729bc06f6e7de98c03231))
+
+
+### Bug Fixes
+
+* **checkout:** add missing peer dependencies for Docker build ([66c81a2](https://github.com/madlinux768/retail-store-sample-app/commit/66c81a266ae78e633965efd88ddc90704eaef326))
+* **logging:** add log4j-layout-template-json and monitoring workflow input ([cf8d7d4](https://github.com/madlinux768/retail-store-sample-app/commit/cf8d7d4388efd845dd50e7c538e2c7dc99f8ced1))
+* **monitoring:** resolve SLO and Contributor Insights apply errors ([a2fbfb5](https://github.com/madlinux768/retail-store-sample-app/commit/a2fbfb5e8a921ab7e0345dce7ec491940e21e0c3))
+* **monitoring:** set deployment.environment for Application Signals ([1b94fbf](https://github.com/madlinux768/retail-store-sample-app/commit/1b94fbfb337cfc95df2397eb8ce21a1e3334158a))
+* **monitoring:** tune memory anomaly detection to reduce false positives ([9f898c9](https://github.com/madlinux768/retail-store-sample-app/commit/9f898c93fd5b46dc31b481dbdf0f28e41ae85dbb))
+* **mq:** ignore user changes on RabbitMQ broker after creation ([40a30c6](https://github.com/madlinux768/retail-store-sample-app/commit/40a30c6d98888f4cf5bdff553be24fb5ea6c7b69))
+* **mq:** use RabbitMQ-compatible instance type mq.m7g.medium ([374b483](https://github.com/madlinux768/retail-store-sample-app/commit/374b483c0c0e0004b3c6bed8d8d92dbd9c56e29c))
+
 ## [1.4.0](https://github.com/aws-containers/retail-store-sample-app/compare/v1.3.0...v1.4.0) (2026-01-30)
 
 
