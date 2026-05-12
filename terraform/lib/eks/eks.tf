@@ -28,6 +28,12 @@ module "eks_cluster" {
   subnet_ids               = var.subnet_ids
   control_plane_subnet_ids = var.subnet_ids
 
+  eks_managed_node_group_defaults = {
+    iam_role_additional_policies = {
+      ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
+  }
+
   eks_managed_node_groups = {
     node_group_1 = {
       name                 = "managed-nodegroup-1"
