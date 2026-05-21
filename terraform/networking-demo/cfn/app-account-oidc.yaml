@@ -47,6 +47,12 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
                 token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:*
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::378147474529:role/networking-demo-github-actions-networking
+                - arn:aws:iam::173471018689:role/networking-demo-github-actions-app
+            Action: sts:AssumeRole
       Policies:
         - PolicyName: TerraformStateBackend
           PolicyDocument:

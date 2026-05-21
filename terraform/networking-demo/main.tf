@@ -28,6 +28,10 @@ provider "aws" {
   alias  = "app"
   region = var.region
 
+  assume_role {
+    role_arn = var.app_role_arn
+  }
+
   default_tags {
     tags = {
       Project     = "retail-store"

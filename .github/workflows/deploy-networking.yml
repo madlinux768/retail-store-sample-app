@@ -35,6 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_networking_role_arn: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
+      TF_VAR_app_role_arn: ${{ secrets.AWS_ROLE_ARN_APP }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

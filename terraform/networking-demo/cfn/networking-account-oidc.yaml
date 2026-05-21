@@ -66,8 +66,12 @@ Resources:
                 Resource: '*'
               - Sid: STS
                 Effect: Allow
-                Action: sts:GetCallerIdentity
-                Resource: '*'
+                Action:
+                  - sts:GetCallerIdentity
+                  - sts:AssumeRole
+                Resource:
+                  - '*'
+                  - arn:aws:iam::173471018689:role/networking-demo-github-actions-app
 
 Outputs:
   RoleArn:
