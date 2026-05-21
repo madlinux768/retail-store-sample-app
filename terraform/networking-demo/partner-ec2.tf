@@ -53,11 +53,11 @@ resource "aws_instance" "partner" {
 
   user_data = <<-EOF
     #!/bin/bash
-    yum install -y httpd
-    systemctl enable httpd
-    systemctl start httpd
-    echo '{"status":"healthy","service":"partner-api","version":"1.0"}' > /var/www/html/health
-    echo '{"data":"partner-response","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > /var/www/html/api/v1/data
+    mkdir -p /srv/www/api/v1
+    echo '{"status":"healthy","service":"partner-api","version":"1.0"}' > /srv/www/health
+    echo '{"data":"partner-response"}' > /srv/www/api/v1/data
+    cd /srv/www
+    nohup python3 -m http.server 80 &>/var/log/partner-http.log &
   EOF
 
   tags = { Name = "partner-service" }
