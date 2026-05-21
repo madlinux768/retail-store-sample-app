@@ -123,10 +123,14 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform/networking-demo
+        env:
+          TF_VAR_networking_role_arn: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
         run: terraform init
 
       - name: Terraform Apply
         working-directory: terraform/networking-demo
+        env:
+          TF_VAR_networking_role_arn: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
         run: terraform apply -input=false tfplan
 
       - name: Output summary
