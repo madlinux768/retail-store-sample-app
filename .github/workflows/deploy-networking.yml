@@ -57,10 +57,6 @@ jobs:
         working-directory: terraform/networking-demo
         run: terraform init
 
-      - name: Remove failed TGW attachment from state
-        working-directory: terraform/networking-demo
-        run: terraform state rm 'aws_ec2_transit_gateway_vpc_attachment.app' || true
-
       - name: Terraform Plan
         id: plan
         working-directory: terraform/networking-demo
