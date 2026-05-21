@@ -56,12 +56,6 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "app" {
   depends_on = [time_sleep.ram_propagation]
 }
 
-# Accept the attachment from the networking account (cross-account, not same org)
-resource "aws_ec2_transit_gateway_vpc_attachment_accepter" "app" {
-  transit_gateway_attachment_id = aws_ec2_transit_gateway_vpc_attachment.app.id
-
-  tags = { Name = "app-vpc-attachment" }
-}
 
 # Route in app VPC to partner network via TGW
 resource "aws_route" "app_to_partner" {
