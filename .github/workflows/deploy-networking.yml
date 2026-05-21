@@ -16,6 +16,10 @@ on:
         description: 'App private subnet IDs, comma-separated'
         required: true
         type: string
+      app_route_table_id:
+        description: 'App VPC route table ID for TGW route'
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -66,7 +70,8 @@ jobs:
             -detailed-exitcode \
             -var="networking_role_arn=${{ secrets.AWS_ROLE_ARN_NETWORKING }}" \
             -var="app_vpc_id=${{ github.event.inputs.app_vpc_id }}" \
-            -var="app_private_subnet_ids=${SUBNETS_JSON}"
+            -var="app_private_subnet_ids=${SUBNETS_JSON}" \
+            -var="app_route_table_id=${{ github.event.inputs.app_route_table_id }}"
           exitcode=$?
           set -e
 

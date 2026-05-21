@@ -48,3 +48,8 @@ variable "networking_role_arn" {
   description = "IAM role ARN to assume for the networking account"
   type        = string
 }
+
+variable "app_route_table_id" {
+  description = "Route table ID in the app VPC for the TGW route"
+  type        = string
+}
