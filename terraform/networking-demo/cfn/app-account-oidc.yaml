@@ -74,99 +74,39 @@ Resources:
             Statement:
               - Sid: EC2
                 Effect: Allow
-                Action:
-                  - ec2:CreateTransitGatewayVpcAttachment
-                  - ec2:DeleteTransitGatewayVpcAttachment
-                  - ec2:DescribeTransitGateway*
-                  - ec2:DescribeVpcs
-                  - ec2:DescribeSubnets
-                  - ec2:DescribeRouteTables
-                  - ec2:DescribeSecurityGroups
-                  - ec2:DescribeSecurityGroupRules
-                  - ec2:DescribeNetworkInterfaces
-                  - ec2:CreateSecurityGroup
-                  - ec2:DeleteSecurityGroup
-                  - ec2:AuthorizeSecurityGroupIngress
-                  - ec2:AuthorizeSecurityGroupEgress
-                  - ec2:RevokeSecurityGroupIngress
-                  - ec2:RevokeSecurityGroupEgress
-                  - ec2:CreateRoute
-                  - ec2:DeleteRoute
-                  - ec2:CreateTags
-                  - ec2:DeleteTags
+                Action: ec2:*
                 Resource: '*'
               - Sid: ELBv2
                 Effect: Allow
-                Action:
-                  - elasticloadbalancing:*
+                Action: elasticloadbalancing:*
                 Resource: '*'
               - Sid: Route53
                 Effect: Allow
-                Action:
-                  - route53:CreateHostedZone
-                  - route53:DeleteHostedZone
-                  - route53:GetHostedZone
-                  - route53:ListHostedZones*
-                  - route53:ChangeResourceRecordSets
-                  - route53:ListResourceRecordSets
-                  - route53:GetChange
-                  - route53:AssociateVPCWithHostedZone
-                  - route53:DisassociateVPCFromHostedZone
-                  - route53:ListTagsForResource
-                  - route53:ChangeTagsForResource
+                Action: route53:*
                 Resource: '*'
               - Sid: Lambda
                 Effect: Allow
-                Action:
-                  - lambda:*
+                Action: lambda:*
                 Resource: '*'
               - Sid: IAM
                 Effect: Allow
-                Action:
-                  - iam:CreateRole
-                  - iam:DeleteRole
-                  - iam:GetRole
-                  - iam:PassRole
-                  - iam:AttachRolePolicy
-                  - iam:DetachRolePolicy
-                  - iam:PutRolePolicy
-                  - iam:GetRolePolicy
-                  - iam:DeleteRolePolicy
-                  - iam:ListRolePolicies
-                  - iam:ListAttachedRolePolicies
-                  - iam:TagRole
-                  - iam:UntagRole
-                  - iam:ListRoleTags
-                  - iam:UpdateAssumeRolePolicy
+                Action: iam:*
                 Resource: arn:aws:iam::173471018689:role/networking-demo-*
               - Sid: CloudWatchAndEvents
                 Effect: Allow
                 Action:
-                  - cloudwatch:PutMetricAlarm
-                  - cloudwatch:DeleteAlarms
-                  - cloudwatch:DescribeAlarms
-                  - cloudwatch:ListTagsForResource
-                  - cloudwatch:TagResource
-                  - cloudwatch:UntagResource
-                  - events:PutRule
-                  - events:DeleteRule
-                  - events:DescribeRule
-                  - events:PutTargets
-                  - events:RemoveTargets
-                  - events:ListTargetsByRule
-                  - events:ListTagsForResource
-                  - events:TagResource
-                  - events:UntagResource
+                  - cloudwatch:*
+                  - events:*
                   - logs:*
                 Resource: '*'
               - Sid: STS
                 Effect: Allow
-                Action: sts:GetCallerIdentity
-                Resource: '*'
-              - Sid: AssumeNetworkingRole
-                Effect: Allow
-                Action: sts:AssumeRole
-                Resource: arn:aws:iam::378147474529:role/networking-demo-github-actions-networking
+                Action:
+                  - sts:GetCallerIdentity
+                  - sts:AssumeRole
+                Resource:
+                  - '*'
+                  - arn:aws:iam::378147474529:role/networking-demo-github-actions-networking
 
 Outputs:
   RoleArn:
