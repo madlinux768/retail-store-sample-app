@@ -74,6 +74,7 @@ jobs:
           aws_secret_access_key=${{ steps.creds-networking.outputs.aws-secret-access-key }}
           aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
           EOF
+          sed -i 's/^[[:space:]]*//' ~/.aws/credentials
           chmod 600 ~/.aws/credentials
 
       - name: Clear environment credentials
@@ -173,6 +174,7 @@ jobs:
           aws_secret_access_key=${{ steps.creds-networking.outputs.aws-secret-access-key }}
           aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
           EOF
+          sed -i 's/^[[:space:]]*//' ~/.aws/credentials
           chmod 600 ~/.aws/credentials
 
       - name: Clear environment credentials
