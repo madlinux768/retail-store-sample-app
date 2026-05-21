@@ -53,20 +53,15 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "app" {
 resource "aws_route" "app_to_partner" {
   provider = aws.app
 
-  route_table_id         = data.aws_route_table.app_private.id
+  route_table_id         = data.aws_route_tables.app.ids[0]
   destination_cidr_block = var.partner_vpc_cidr
   transit_gateway_id     = aws_ec2_transit_gateway.demo.id
 
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.app]
 }
 
-# Look up the app VPC's main route table
-data "aws_route_table" "app_private" {
+# Look up the app VPC's route tables
+data "aws_route_tables" "app" {
   provider = aws.app
   vpc_id   = var.app_vpc_id
-
-  filter {
-    name   = "association.main"
-    values = ["true"]
-  }
 }
