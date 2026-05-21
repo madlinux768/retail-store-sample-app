@@ -60,13 +60,13 @@ resource "aws_route" "app_to_partner" {
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.app]
 }
 
-# Look up the app VPC's private route table
+# Look up the app VPC's main route table
 data "aws_route_table" "app_private" {
   provider = aws.app
   vpc_id   = var.app_vpc_id
 
   filter {
-    name   = "association.subnet-id"
-    values = [var.app_private_subnet_ids[0]]
+    name   = "association.main"
+    values = ["true"]
   }
 }
