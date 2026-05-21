@@ -51,7 +51,7 @@ resource "aws_instance" "partner" {
   subnet_id              = aws_subnet.partner_private[0].id
   vpc_security_group_ids = [aws_security_group.partner.id]
 
-  user_data = <<-'EOF'
+  user_data = <<-EOF
 #!/bin/bash
 mkdir -p /srv/www/api/v1
 echo '{"status":"healthy","service":"partner-api","version":"1.0"}' > /srv/www/health
