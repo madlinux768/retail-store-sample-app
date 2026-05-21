@@ -76,6 +76,12 @@ jobs:
           EOF
           chmod 600 ~/.aws/credentials
 
+      - name: Clear environment credentials
+        run: |
+          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
+
       - name: Terraform Init
         working-directory: terraform/networking-demo
         env:
@@ -168,6 +174,12 @@ jobs:
           aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
           EOF
           chmod 600 ~/.aws/credentials
+
+      - name: Clear environment credentials
+        run: |
+          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
 
       - name: Download plan
         uses: actions/download-artifact@v4
