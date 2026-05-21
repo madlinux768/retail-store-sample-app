@@ -51,14 +51,31 @@ resource "aws_instance" "partner" {
   subnet_id              = aws_subnet.partner_private[0].id
   vpc_security_group_ids = [aws_security_group.partner.id]
 
-  user_data = <<-EOF
-    #!/bin/bash
-    mkdir -p /srv/www/api/v1
-    echo '{"status":"healthy","service":"partner-api","version":"1.0"}' > /srv/www/health
-    echo '{"data":"partner-response"}' > /srv/www/api/v1/data
-    cd /srv/www
-    nohup python3 -m http.server 80 &>/var/log/partner-http.log &
-  EOF
+  user_data = <<-'EOF'
+#!/bin/bash
+mkdir -p /srv/www/api/v1
+echo '{"status":"healthy","service":"partner-api","version":"1.0"}' > /srv/www/health
+echo '{"data":"partner-response"}' > /srv/www/api/v1/data
+
+cat > /etc/systemd/system/partner-http.service <<'UNIT'
+[Unit]
+Description=Partner HTTP Server
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/www
+ExecStart=/usr/bin/python3 -m http.server 80
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now partner-http
+EOF
+
+  user_data_replace_on_change = true
 
   tags = { Name = "partner-service" }
 }
