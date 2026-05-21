@@ -36,6 +36,13 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "partner" {
   tags = { Name = "partner-vpc-attachment" }
 }
 
+# Wait for RAM share to propagate to app account
+resource "time_sleep" "ram_propagation" {
+  create_duration = "60s"
+
+  depends_on = [aws_ram_principal_association.app_account]
+}
+
 # Attach app VPC to TGW (in app account)
 resource "aws_ec2_transit_gateway_vpc_attachment" "app" {
   provider = aws.app
@@ -46,7 +53,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "app" {
 
   tags = { Name = "app-vpc-attachment" }
 
-  depends_on = [aws_ram_principal_association.app_account]
+  depends_on = [time_sleep.ram_propagation]
 }
 
 # Route in app VPC to partner network via TGW
