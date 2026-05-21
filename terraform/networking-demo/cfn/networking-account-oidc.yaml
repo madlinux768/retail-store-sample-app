@@ -8,10 +8,18 @@ Parameters:
   GitHubRepo:
     Type: String
     Default: retail-store-sample-app
+  OIDCProviderArn:
+    Type: String
+    Default: ''
+    Description: ARN of existing GitHub OIDC provider (leave blank to create one)
+
+Conditions:
+  CreateOIDCProvider: !Equals [!Ref OIDCProviderArn, '']
 
 Resources:
   GitHubOIDCProvider:
     Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDCProvider
     Properties:
       Url: https://token.actions.githubusercontent.com
       ClientIdList:
@@ -29,7 +37,10 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !Ref GitHubOIDCProvider
+              Federated: !If
+                - CreateOIDCProvider
+                - !Ref GitHubOIDCProvider
+                - !Ref OIDCProviderArn
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
@@ -135,5 +146,3 @@ Resources:
 Outputs:
   RoleArn:
     Value: !GetAtt GitHubActionsRole.Arn
-  OIDCProviderArn:
-    Value: !Ref GitHubOIDCProvider
