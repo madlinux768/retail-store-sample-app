@@ -8,8 +8,11 @@
 # - "aws.app" = app account (TGW attachment, NLB, Route53 PHZ, synthetic Lambda)
 
 provider "aws" {
-  region  = var.region
-  profile = var.networking_profile
+  region = var.region
+
+  assume_role {
+    role_arn = var.networking_role_arn
+  }
 
   default_tags {
     tags = {
@@ -22,9 +25,8 @@ provider "aws" {
 }
 
 provider "aws" {
-  alias   = "app"
-  region  = var.region
-  profile = var.app_profile
+  alias  = "app"
+  region = var.region
 
   default_tags {
     tags = {

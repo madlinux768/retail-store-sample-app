@@ -41,52 +41,15 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Configure AWS credentials (App Account)
-        id: creds-app
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_APP }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-NetworkingDemo-App
-          output-credentials: true
-
-      - name: Configure AWS credentials (Networking Account)
-        id: creds-networking
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-NetworkingDemo-Networking
-          output-credentials: true
-          unset-current-credentials: true
-
-      - name: Write AWS credential profiles
-        run: |
-          mkdir -p ~/.aws
-          cat > ~/.aws/credentials << EOF
-          [app]
-          aws_access_key_id=${{ steps.creds-app.outputs.aws-access-key-id }}
-          aws_secret_access_key=${{ steps.creds-app.outputs.aws-secret-access-key }}
-          aws_session_token=${{ steps.creds-app.outputs.aws-session-token }}
-
-          [networking]
-          aws_access_key_id=${{ steps.creds-networking.outputs.aws-access-key-id }}
-          aws_secret_access_key=${{ steps.creds-networking.outputs.aws-secret-access-key }}
-          aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
-          EOF
-          sed -i 's/^[[:space:]]*//' ~/.aws/credentials
-          chmod 600 ~/.aws/credentials
-
-      - name: Clear environment credentials
-        run: |
-          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
+          role-session-name: GitHubActions-NetworkingDemo
 
       - name: Terraform Init
         working-directory: terraform/networking-demo
-        env:
-          AWS_PROFILE: app
         run: terraform init
 
       - name: Terraform Plan
@@ -101,8 +64,7 @@ jobs:
             -input=false \
             -out=tfplan \
             -detailed-exitcode \
-            -var="networking_profile=networking" \
-            -var="app_profile=app" \
+            -var="networking_role_arn=${{ secrets.AWS_ROLE_ARN_NETWORKING }}" \
             -var="app_vpc_id=${{ github.event.inputs.app_vpc_id }}" \
             -var="app_private_subnet_ids=${SUBNETS_JSON}"
           exitcode=$?
@@ -141,47 +103,12 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Configure AWS credentials (App Account)
-        id: creds-app
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_APP }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-NetworkingDemo-App
-          output-credentials: true
-
-      - name: Configure AWS credentials (Networking Account)
-        id: creds-networking
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-NetworkingDemo-Networking
-          output-credentials: true
-          unset-current-credentials: true
-
-      - name: Write AWS credential profiles
-        run: |
-          mkdir -p ~/.aws
-          cat > ~/.aws/credentials << EOF
-          [app]
-          aws_access_key_id=${{ steps.creds-app.outputs.aws-access-key-id }}
-          aws_secret_access_key=${{ steps.creds-app.outputs.aws-secret-access-key }}
-          aws_session_token=${{ steps.creds-app.outputs.aws-session-token }}
-
-          [networking]
-          aws_access_key_id=${{ steps.creds-networking.outputs.aws-access-key-id }}
-          aws_secret_access_key=${{ steps.creds-networking.outputs.aws-secret-access-key }}
-          aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
-          EOF
-          sed -i 's/^[[:space:]]*//' ~/.aws/credentials
-          chmod 600 ~/.aws/credentials
-
-      - name: Clear environment credentials
-        run: |
-          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
+          role-session-name: GitHubActions-NetworkingDemo
 
       - name: Download plan
         uses: actions/download-artifact@v4
@@ -191,8 +118,6 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform/networking-demo
-        env:
-          AWS_PROFILE: app
         run: terraform init
 
       - name: Terraform Apply

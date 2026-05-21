@@ -44,14 +44,7 @@ variable "partner_instance_type" {
   default     = "t3.micro"
 }
 
-variable "networking_profile" {
-  description = "AWS CLI profile for the networking account"
+variable "networking_role_arn" {
+  description = "IAM role ARN to assume for the networking account"
   type        = string
-  default     = null
-}
-
-variable "app_profile" {
-  description = "AWS CLI profile for the app account"
-  type        = string
-  default     = null
 }
