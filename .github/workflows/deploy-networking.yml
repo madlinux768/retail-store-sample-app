@@ -1,0 +1,196 @@
+name: Deploy Networking Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      auto_approve:
+        description: 'Auto-approve terraform apply'
+        required: false
+        default: false
+        type: boolean
+      app_vpc_id:
+        description: 'App VPC ID (e.g. vpc-0abc1234)'
+        required: true
+        type: string
+      app_private_subnet_ids:
+        description: 'App private subnet IDs, comma-separated'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  TF_VERSION: '1.9.0'
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    outputs:
+      plan_exitcode: ${{ steps.plan.outputs.exitcode }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials (App Account)
+        id: creds-app
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_APP }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-NetworkingDemo-App
+          output-credentials: true
+
+      - name: Configure AWS credentials (Networking Account)
+        id: creds-networking
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-NetworkingDemo-Networking
+          output-credentials: true
+          unset-current-credentials: true
+
+      - name: Write AWS credential profiles
+        run: |
+          mkdir -p ~/.aws
+          cat > ~/.aws/credentials << EOF
+          [app]
+          aws_access_key_id=${{ steps.creds-app.outputs.aws-access-key-id }}
+          aws_secret_access_key=${{ steps.creds-app.outputs.aws-secret-access-key }}
+          aws_session_token=${{ steps.creds-app.outputs.aws-session-token }}
+
+          [networking]
+          aws_access_key_id=${{ steps.creds-networking.outputs.aws-access-key-id }}
+          aws_secret_access_key=${{ steps.creds-networking.outputs.aws-secret-access-key }}
+          aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
+          EOF
+          chmod 600 ~/.aws/credentials
+
+      - name: Terraform Init
+        working-directory: terraform/networking-demo
+        env:
+          AWS_PROFILE: app
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: terraform/networking-demo
+        run: |
+          SUBNETS_JSON=$(echo '${{ github.event.inputs.app_private_subnet_ids }}' | \
+            python3 -c "import sys,json; ids=sys.stdin.read().strip().split(','); print(json.dumps([s.strip() for s in ids]))")
+
+          set +e
+          terraform plan \
+            -input=false \
+            -out=tfplan \
+            -detailed-exitcode \
+            -var="networking_profile=networking" \
+            -var="app_profile=app" \
+            -var="app_vpc_id=${{ github.event.inputs.app_vpc_id }}" \
+            -var="app_private_subnet_ids=${SUBNETS_JSON}"
+          exitcode=$?
+          set -e
+
+          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+
+          if [ "$exitcode" -eq 1 ]; then
+            echo "::error::Terraform plan failed"
+            exit 1
+          elif [ "$exitcode" -eq 2 ]; then
+            echo "::notice::Changes detected, apply needed"
+          else
+            echo "::notice::No changes detected"
+          fi
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-networking
+          path: terraform/networking-demo/tfplan
+          retention-days: 5
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    if: needs.terraform-plan.outputs.plan_exitcode == '2' || github.event.inputs.auto_approve == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials (App Account)
+        id: creds-app
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_APP }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-NetworkingDemo-App
+          output-credentials: true
+
+      - name: Configure AWS credentials (Networking Account)
+        id: creds-networking
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_NETWORKING }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-NetworkingDemo-Networking
+          output-credentials: true
+          unset-current-credentials: true
+
+      - name: Write AWS credential profiles
+        run: |
+          mkdir -p ~/.aws
+          cat > ~/.aws/credentials << EOF
+          [app]
+          aws_access_key_id=${{ steps.creds-app.outputs.aws-access-key-id }}
+          aws_secret_access_key=${{ steps.creds-app.outputs.aws-secret-access-key }}
+          aws_session_token=${{ steps.creds-app.outputs.aws-session-token }}
+
+          [networking]
+          aws_access_key_id=${{ steps.creds-networking.outputs.aws-access-key-id }}
+          aws_secret_access_key=${{ steps.creds-networking.outputs.aws-secret-access-key }}
+          aws_session_token=${{ steps.creds-networking.outputs.aws-session-token }}
+          EOF
+          chmod 600 ~/.aws/credentials
+
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-networking
+          path: terraform/networking-demo
+
+      - name: Terraform Init
+        working-directory: terraform/networking-demo
+        env:
+          AWS_PROFILE: app
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: terraform/networking-demo
+        run: terraform apply -input=false tfplan
+
+      - name: Output summary
+        working-directory: terraform/networking-demo
+        run: |
+          echo "### Networking Demo Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Transit Gateway ID:** $(terraform output -raw transit_gateway_id 2>/dev/null || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+          echo "**Partner VPC ID:** $(terraform output -raw partner_vpc_id 2>/dev/null || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+          echo "**NLB DNS:** $(terraform output -raw nlb_dns_name 2>/dev/null || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+          echo "**Partner IP:** $(terraform output -raw partner_private_ip 2>/dev/null || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
