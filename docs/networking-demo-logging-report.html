@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Networking Demo — Resources &amp; Logging Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1419;
+            color: #e6edf3;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #f0f6fc;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7d8590;
+            font-size: 14px;
+            margin-bottom: 48px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        /* Section headers */
+        .section {
+            margin-bottom: 48px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #21262d;
+        }
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .section-number.purple { background: #2d1f47; color: #a371f7; border: 1px solid #a371f7; }
+        .section-number.blue   { background: #0d2044; color: #58a6ff; border: 1px solid #1f6feb; }
+        .section-number.green  { background: #0d2a18; color: #3fb950; border: 1px solid #238636; }
+        .section-number.orange { background: #2d1a07; color: #f0883e; border: 1px solid #f0883e; }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+        .section-desc {
+            font-size: 13px;
+            color: #7d8590;
+            margin-top: 2px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: #161b22;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #21262d;
+        }
+        thead tr {
+            background: #1c2128;
+        }
+        thead th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #8b949e;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid #30363d;
+        }
+        tbody tr {
+            border-bottom: 1px solid #21262d;
+            transition: background 0.1s;
+        }
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+        tbody tr:hover {
+            background: #1c2128;
+        }
+        td {
+            padding: 12px 16px;
+            vertical-align: top;
+            color: #e6edf3;
+            line-height: 1.5;
+        }
+        td.mono {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12px;
+            color: #79c0ff;
+        }
+        td.muted {
+            color: #7d8590;
+            font-size: 12px;
+        }
+
+        /* Badges / pills */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .badge-purple { background: #2d1f47; color: #a371f7; border: 1px solid #4d2e8a; }
+        .badge-blue   { background: #0d2044; color: #58a6ff; border: 1px solid #1f6feb; }
+        .badge-green  { background: #0d2a18; color: #3fb950; border: 1px solid #238636; }
+        .badge-orange { background: #2d1a07; color: #f0883e; border: 1px solid #a04a14; }
+        .badge-red    { background: #2d0f0e; color: #f85149; border: 1px solid #8b1c1c; }
+        .badge-gray   { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+        .badge-teal   { background: #0b2a2a; color: #39d3c3; border: 1px solid #1a6b66; }
+
+        /* Account pill */
+        .acct {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 11px;
+            background: #1c2128;
+            color: #7d8590;
+            border: 1px solid #30363d;
+        }
+
+        /* Resource ID chip */
+        .rid {
+            display: inline-block;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 11px;
+            color: #79c0ff;
+            background: #0d1e33;
+            border: 1px solid #1f6feb44;
+            border-radius: 4px;
+            padding: 1px 6px;
+            word-break: break-all;
+        }
+
+        /* Observability guide cards */
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(580px, 1fr));
+            gap: 16px;
+        }
+        .guide-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .guide-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .alarm-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+        .alarm-icon.red    { background: #2d0f0e; border: 1px solid #8b1c1c; }
+        .alarm-icon.orange { background: #2d1a07; border: 1px solid #a04a14; }
+        .alarm-icon.yellow { background: #2a2007; border: 1px solid #9e7400; }
+        .alarm-icon.purple { background: #2d1f47; border: 1px solid #4d2e8a; }
+
+        .guide-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 2px;
+        }
+        .alarm-name {
+            font-family: monospace;
+            font-size: 11px;
+            color: #7d8590;
+        }
+        .guide-steps {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        .guide-steps li {
+            counter-increment: step-counter;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #c9d1d9;
+            line-height: 1.5;
+        }
+        .guide-steps li::before {
+            content: counter(step-counter);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            background: #21262d;
+            color: #58a6ff;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .guide-steps li .log-ref {
+            font-family: monospace;
+            font-size: 11px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 1px 5px;
+            color: #a371f7;
+        }
+        .guide-steps li .finding {
+            font-family: monospace;
+            font-size: 11px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 1px 5px;
+            color: #f85149;
+        }
+
+        /* Fault injection table — evidence column */
+        .evidence-list {
+            list-style: none;
+            padding: 0;
+        }
+        .evidence-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .evidence-list li .src {
+            display: inline-block;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            margin-top: 1px;
+        }
+        .src-tgw   { background: #2d1f47; color: #a371f7; border: 1px solid #4d2e8a; }
+        .src-vpc   { background: #0d2044; color: #58a6ff; border: 1px solid #1f6feb; }
+        .src-dns   { background: #0b2a2a; color: #39d3c3; border: 1px solid #1a6b66; }
+        .src-lam   { background: #0d2a18; color: #3fb950; border: 1px solid #238636; }
+        .src-nlb   { background: #2d1a07; color: #f0883e; border: 1px solid #a04a14; }
+
+        /* Footer */
+        .footer {
+            margin-top: 56px;
+            padding-top: 20px;
+            border-top: 1px solid #21262d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: gap;
+        }
+        .footer-left {
+            font-size: 12px;
+            color: #484f58;
+        }
+        .footer-right {
+            font-size: 12px;
+            color: #484f58;
+            font-family: monospace;
+        }
+        .tag-purple { color: #a371f7; }
+        .tag-blue   { color: #58a6ff; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>Networking Demo — Resources &amp; Logging Report</h1>
+    <p class="subtitle">Transit Gateway cross-account connectivity: deployed infrastructure, log sources, observability guidance, and fault injection signatures</p>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SECTION 1: Infrastructure Overview -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-number purple">1</div>
+            <div>
+                <div class="section-title">Infrastructure Overview</div>
+                <div class="section-desc">All deployed networking demo resources across the partner account (378147474529) and app account (173471018689)</div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Resource</th>
+                    <th>Type</th>
+                    <th>Account</th>
+                    <th>ID / ARN</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Partner VPC</strong></td>
+                    <td><span class="badge badge-purple">VPC</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="mono"><span class="rid">vpc-0a263cdf68415e30b</span></td>
+                    <td class="muted">Partner network (10.1.0.0/16). Houses the partner EC2 and TGW attachment. RAM-shared to app account.</td>
+                </tr>
+                <tr>
+                    <td><strong>Transit Gateway</strong></td>
+                    <td><span class="badge badge-purple">EC2 TGW</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="mono"><span class="rid">tgw-01096907d4648d941</span></td>
+                    <td class="muted">Central hub for cross-VPC / cross-account connectivity. Shared via AWS Resource Access Manager.</td>
+                </tr>
+                <tr>
+                    <td><strong>Partner EC2</strong></td>
+                    <td><span class="badge badge-purple">EC2 Instance</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="mono"><span class="rid">i-0ae35fba922471a0e</span><br><span style="color:#7d8590; font-size:11px">10.1.10.163</span></td>
+                    <td class="muted">Simulated partner HTTP endpoint (Apache httpd). Target of synthetic Lambda probe and NLB health checks.</td>
+                </tr>
+                <tr>
+                    <td><strong>Partner Security Group</strong></td>
+                    <td><span class="badge badge-purple">Security Group</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="mono"><span class="rid">sg-0c4f12bf1bc479afe</span></td>
+                    <td class="muted">Controls inbound access to the partner EC2. Fault injection revokes port 80 ingress to simulate SG block scenario.</td>
+                </tr>
+                <tr>
+                    <td><strong>TGW Attachment — Partner</strong></td>
+                    <td><span class="badge badge-purple">TGW Attachment</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="mono"><span class="rid">tgw-attach-0b5bb1275b7a97f30</span></td>
+                    <td class="muted">Attaches the partner VPC to the Transit Gateway. Flow logs capture per-attachment traffic.</td>
+                </tr>
+                <tr>
+                    <td><strong>TGW Attachment — App</strong></td>
+                    <td><span class="badge badge-blue">TGW Attachment</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">tgw-attach-07ccbabb6ad95078d</span></td>
+                    <td class="muted">Attaches the app VPC to the Transit Gateway. Accepted cross-account via resource share.</td>
+                </tr>
+                <tr>
+                    <td><strong>Network Load Balancer</strong></td>
+                    <td><span class="badge badge-blue">NLB</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">partner-service-nlb</span></td>
+                    <td class="muted">Internal NLB in the app VPC. Forwards traffic to the partner EC2 (10.1.10.163) via TGW. Enables stable DNS resolution within the app VPC.</td>
+                </tr>
+                <tr>
+                    <td><strong>Route 53 Private Hosted Zone</strong></td>
+                    <td><span class="badge badge-blue">Route53 PHZ</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">Z05579592LTL36F75RLS5</span><br><span style="color:#7d8590; font-size:11px">partner.internal</span></td>
+                    <td class="muted">Provides <code style="color:#79c0ff">api.partner.internal</code> DNS name resolving to the NLB. Associated with the app VPC.</td>
+                </tr>
+                <tr>
+                    <td><strong>Synthetic Lambda</strong></td>
+                    <td><span class="badge badge-blue">Lambda</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">networking-demo-connectivity-check</span></td>
+                    <td class="muted">Fires every 60 seconds via EventBridge. Probes <code style="color:#79c0ff">api.partner.internal</code> and publishes custom CloudWatch metrics for connectivity and latency.</td>
+                </tr>
+                <tr>
+                    <td><strong>CW Alarm: cross-vpc-connectivity-down</strong></td>
+                    <td><span class="badge badge-red">CW Alarm</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">NetworkingDemo/CrossVpcConnectivity</span></td>
+                    <td class="muted">Triggers when the Lambda connectivity probe returns 0 (failure) for 2 consecutive periods.</td>
+                </tr>
+                <tr>
+                    <td><strong>CW Alarm: dns-connectivity-down</strong></td>
+                    <td><span class="badge badge-red">CW Alarm</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">NetworkingDemo/DnsConnectivity</span></td>
+                    <td class="muted">Triggers when DNS resolution of <code style="color:#79c0ff">api.partner.internal</code> fails.</td>
+                </tr>
+                <tr>
+                    <td><strong>CW Alarm: cross-vpc-latency-high</strong></td>
+                    <td><span class="badge badge-orange">CW Alarm</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">NetworkingDemo/CrossVpcLatencyMs</span></td>
+                    <td class="muted">Triggers when round-trip latency to the partner exceeds threshold (p99 &gt; 500 ms).</td>
+                </tr>
+                <tr>
+                    <td><strong>CW Alarm: nlb-unhealthy-targets</strong></td>
+                    <td><span class="badge badge-red">CW Alarm</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="mono"><span class="rid">AWS/NetworkELB: UnHealthyHostCount</span></td>
+                    <td class="muted">Triggers when all NLB target health checks fail, indicating the partner EC2 is unreachable from the NLB.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SECTION 2: Logging Configuration -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-number blue">2</div>
+            <div>
+                <div class="section-title">Logging Configuration</div>
+                <div class="section-desc">All enabled log sources, destinations, retention policies, and key fields available for diagnosis</div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Log Source</th>
+                    <th>Type</th>
+                    <th>Destination</th>
+                    <th>Retention</th>
+                    <th>Account</th>
+                    <th>Key Fields / Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>VPC Flow Logs</strong><br><span style="font-size:11px;color:#7d8590">Partner VPC</span></td>
+                    <td><span class="badge badge-blue">VPC Flow Logs</span></td>
+                    <td class="mono"><span class="rid">/aws/vpc/networking-demo-partner</span></td>
+                    <td><span class="badge badge-gray">7 days</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="muted"><code style="color:#79c0ff">srcaddr</code>, <code style="color:#79c0ff">dstaddr</code>, <code style="color:#79c0ff">srcport</code>, <code style="color:#79c0ff">dstport</code>, <code style="color:#79c0ff">action</code> (ACCEPT/REJECT), <code style="color:#79c0ff">protocol</code>, <code style="color:#79c0ff">flow-direction</code>. Captures all ingress/egress in the partner VPC — essential for confirming SG block vs routing issue.</td>
+                </tr>
+                <tr>
+                    <td><strong>TGW Flow Logs</strong><br><span style="font-size:11px;color:#7d8590">Transit Gateway</span></td>
+                    <td><span class="badge badge-purple">TGW Flow Logs</span></td>
+                    <td class="mono"><span class="rid">/aws/tgw/networking-demo</span></td>
+                    <td><span class="badge badge-gray">7 days</span></td>
+                    <td><span class="acct">378147474529</span></td>
+                    <td class="muted">Per-attachment traffic visibility: <code style="color:#79c0ff">attachment-id</code>, <code style="color:#79c0ff">packets</code>, <code style="color:#79c0ff">bytes</code>, <code style="color:#79c0ff">action</code>. Confirms whether traffic is crossing the TGW or being dropped at the route table level.</td>
+                </tr>
+                <tr>
+                    <td><strong>Lambda Logs</strong><br><span style="font-size:11px;color:#7d8590">Synthetic probe</span></td>
+                    <td><span class="badge badge-green">CloudWatch Logs</span></td>
+                    <td class="mono"><span class="rid">/aws/lambda/networking-demo-connectivity-check</span></td>
+                    <td><span class="badge badge-gray">7 days</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="muted">Structured JSON per invocation: <code style="color:#79c0ff">status</code>, <code style="color:#79c0ff">latency_ms</code>, <code style="color:#79c0ff">dns_resolution_ms</code>, <code style="color:#79c0ff">error_type</code>, <code style="color:#79c0ff">error_message</code>. First-alert signal — fires before alarms do.</td>
+                </tr>
+                <tr>
+                    <td><strong>Route 53 Resolver Query Logs</strong><br><span style="font-size:11px;color:#7d8590">App VPC DNS</span></td>
+                    <td><span class="badge badge-teal">Resolver Query Logs</span></td>
+                    <td class="mono"><span class="rid">/aws/route53resolver/networking-demo</span></td>
+                    <td><span class="badge badge-gray">7 days</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="muted"><code style="color:#79c0ff">query_name</code>, <code style="color:#79c0ff">query_type</code>, <code style="color:#79c0ff">rcode</code> (NOERROR/NXDOMAIN/SERVFAIL), <code style="color:#79c0ff">answers</code>, <code style="color:#79c0ff">vpc_id</code>. Proves whether DNS resolution itself failed or succeeded before the connection attempt.</td>
+                </tr>
+                <tr>
+                    <td><strong>NLB Access Logs</strong><br><span style="font-size:11px;color:#7d8590">partner-service-nlb</span></td>
+                    <td><span class="badge badge-orange">S3 Access Logs</span></td>
+                    <td class="mono"><span class="rid">s3://networking-demo-nlb-logs-173471018689</span></td>
+                    <td><span class="badge badge-gray">No expiry</span></td>
+                    <td><span class="acct">173471018689</span></td>
+                    <td class="muted"><code style="color:#79c0ff">type</code>, <code style="color:#79c0ff">time</code>, <code style="color:#79c0ff">elb</code>, <code style="color:#79c0ff">client:port</code>, <code style="color:#79c0ff">target:port</code>, <code style="color:#79c0ff">request_processing_time</code>, <code style="color:#79c0ff">target_processing_time</code>, <code style="color:#79c0ff">target_status_code</code>, <code style="color:#79c0ff">connection_log: action</code> (health-check results, connection failures).</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SECTION 3: DevOps Agent Observability Guide -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-number green">3</div>
+            <div>
+                <div class="section-title">DevOps Agent Observability Guide</div>
+                <div class="section-desc">Step-by-step log investigation paths for each alarm scenario the agent may encounter</div>
+            </div>
+        </div>
+
+        <div class="guide-grid">
+
+            <!-- Card 1: Connectivity failure -->
+            <div class="guide-card">
+                <div class="guide-card-header">
+                    <div class="alarm-icon red">🔴</div>
+                    <div>
+                        <h3>Connectivity Failure</h3>
+                        <div class="alarm-name">Alarm: cross-vpc-connectivity-down</div>
+                    </div>
+                </div>
+                <ol class="guide-steps">
+                    <li>
+                        <div>Check <span class="log-ref">/aws/lambda/networking-demo-connectivity-check</span> for the most recent invocation. The <code style="color:#f0883e">error_message</code> field narrows the root cause immediately: <span class="finding">timed out</span> (routing/TGW) vs <span class="finding">Connection refused</span> (SG/host) vs <span class="finding">Name or service not known</span> (DNS).</div>
+                    </li>
+                    <li>
+                        <div>Check <span class="log-ref">/aws/tgw/networking-demo</span> for the relevant attachment IDs. Zero <code style="color:#79c0ff">packets</code> for traffic toward <code style="color:#79c0ff">10.1.0.0/16</code> confirms a blackhole route or missing TGW route table entry.</div>
+                    </li>
+                    <li>
+                        <div>Check <span class="log-ref">/aws/vpc/networking-demo-partner</span> with filter <code style="color:#79c0ff">action=REJECT</code> and <code style="color:#79c0ff">dstport=80</code>. REJECT records pointing to the partner EC2 IP confirm a security group block.</div>
+                    </li>
+                    <li>
+                        <div>Correlate timestamps across all three sources to confirm a single root cause before proposing a fix.</div>
+                    </li>
+                </ol>
+            </div>
+
+            <!-- Card 2: DNS failure -->
+            <div class="guide-card">
+                <div class="guide-card-header">
+                    <div class="alarm-icon orange">🟠</div>
+                    <div>
+                        <h3>DNS Resolution Failure</h3>
+                        <div class="alarm-name">Alarm: dns-connectivity-down</div>
+                    </div>
+                </div>
+                <ol class="guide-steps">
+                    <li>
+                        <div>Check <span class="log-ref">/aws/route53resolver/networking-demo</span> for queries to <code style="color:#79c0ff">api.partner.internal</code>. An <span class="finding">rcode=NXDOMAIN</span> confirms the PHZ record is missing or the zone is not associated with the VPC.</div>
+                    </li>
+                    <li>
+                        <div>An <span class="finding">rcode=SERVFAIL</span> suggests the PHZ association itself was removed. Verify the PHZ <span class="rid">Z05579592LTL36F75RLS5</span> is still associated with the app VPC via the Route 53 console or AWS CLI.</div>
+                    </li>
+                    <li>
+                        <div>Confirm Lambda logs show <span class="finding">Name or service not known</span> — this corroborates DNS failure rather than a downstream TCP issue.</div>
+                    </li>
+                    <li>
+                        <div>If PHZ association is intact, check that the NLB DNS alias record exists in the zone and the NLB itself is healthy.</div>
+                    </li>
+                </ol>
+            </div>
+
+            <!-- Card 3: Latency spike -->
+            <div class="guide-card">
+                <div class="guide-card-header">
+                    <div class="alarm-icon yellow">🟡</div>
+                    <div>
+                        <h3>Latency Spike</h3>
+                        <div class="alarm-name">Alarm: cross-vpc-latency-high</div>
+                    </div>
+                </div>
+                <ol class="guide-steps">
+                    <li>
+                        <div>Check <span class="log-ref">/aws/lambda/networking-demo-connectivity-check</span> for the <code style="color:#79c0ff">latency_ms</code> and <code style="color:#79c0ff">dns_resolution_ms</code> fields. A high <code style="color:#79c0ff">dns_resolution_ms</code> with normal TCP latency isolates the issue to DNS (resolver overload or TTL expiry storm).</div>
+                    </li>
+                    <li>
+                        <div>Check <span class="log-ref">/aws/tgw/networking-demo</span> for abnormal packet counts or retransmission patterns on the attachment toward <code style="color:#79c0ff">10.1.0.0/16</code> — packet loss at the TGW level causes TCP retransmits and visible latency.</div>
+                    </li>
+                    <li>
+                        <div>Check S3 NLB access logs (<span class="log-ref">networking-demo-nlb-logs-173471018689</span>) for elevated <code style="color:#79c0ff">target_processing_time</code> — if the NLB shows normal connection time but high target time, the partner EC2 is CPU-bound or overwhelmed.</div>
+                    </li>
+                    <li>
+                        <div>Check VPC flow logs for <code style="color:#79c0ff">flow-direction=ingress</code> on the NLB ENIs toward <code style="color:#79c0ff">10.1.10.163</code> to confirm traffic is reaching the partner subnet.</div>
+                    </li>
+                </ol>
+            </div>
+
+            <!-- Card 4: NLB unhealthy targets -->
+            <div class="guide-card">
+                <div class="guide-card-header">
+                    <div class="alarm-icon purple">🟣</div>
+                    <div>
+                        <h3>NLB Unhealthy Targets</h3>
+                        <div class="alarm-name">Alarm: nlb-unhealthy-targets</div>
+                    </div>
+                </div>
+                <ol class="guide-steps">
+                    <li>
+                        <div>Check S3 NLB access logs (<span class="log-ref">networking-demo-nlb-logs-173471018689</span>) for <code style="color:#79c0ff">connection_log</code> entries with <span class="finding">action=fail</span> on health check probes to <code style="color:#79c0ff">10.1.10.163:80</code>.</div>
+                    </li>
+                    <li>
+                        <div>Check <span class="log-ref">/aws/vpc/networking-demo-partner</span> for return traffic from <code style="color:#79c0ff">10.1.10.163</code> back to the NLB ENI source IPs. No return packets (asymmetric routing) means health checks reach the EC2 but responses are dropped.</div>
+                    </li>
+                    <li>
+                        <div>Check the partner security group <span class="rid">sg-0c4f12bf1bc479afe</span>: VPC flow logs with <span class="finding">action=REJECT</span> on port 80 from NLB ENI source IPs confirm a security group block of health checks.</div>
+                    </li>
+                    <li>
+                        <div>If SG is open, check EC2 instance status (<code style="color:#79c0ff">i-0ae35fba922471a0e</code>) — a stopped instance will show TCP connection resets in the NLB logs.</div>
+                    </li>
+                </ol>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SECTION 4: Fault Injection & Expected Log Signatures -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-number orange">4</div>
+            <div>
+                <div class="section-title">Fault Injection &amp; Expected Log Signatures</div>
+                <div class="section-desc">What each fault script does and the exact log evidence the DevOps Agent should find during diagnosis</div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Fault Scenario</th>
+                    <th>Inject Script</th>
+                    <th>Alarms Triggered</th>
+                    <th>Expected Log Evidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <strong>TGW Route Blackhole</strong><br>
+                        <span style="font-size:11px;color:#7d8590">Route table entry for 10.1.0.0/16 replaced with blackhole</span>
+                    </td>
+                    <td class="mono"><span class="rid">ecs-inject-tgw-route-drop.sh</span></td>
+                    <td>
+                        <span class="badge badge-red">cross-vpc-connectivity-down</span>
+                    </td>
+                    <td>
+                        <ul class="evidence-list">
+                            <li><span class="src src-tgw">TGW</span> TGW flow logs: zero <code style="color:#79c0ff">packets</code> / <code style="color:#79c0ff">bytes</code> on attachment toward <code style="color:#79c0ff">10.1.0.0/16</code> — traffic is silently dropped at route table</li>
+                            <li><span class="src src-lam">Lambda</span> Lambda logs: <code style="color:#f85149">error_message: "timed out"</code>, <code style="color:#f85149">error_type: "ConnectionTimeout"</code>, latency at max (10 000 ms)</li>
+                            <li><span class="src src-vpc">VPC</span> Partner VPC flow logs: no ingress records from app VPC CIDR — packets never arrive at partner subnet</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>DNS Failure</strong><br>
+                        <span style="font-size:11px;color:#7d8590">Route 53 PHZ disassociated from app VPC</span>
+                    </td>
+                    <td class="mono"><span class="rid">ecs-inject-dns-failure.sh</span></td>
+                    <td>
+                        <span class="badge badge-red">dns-connectivity-down</span><br>
+                        <span class="badge badge-red" style="margin-top:4px">cross-vpc-connectivity-down</span>
+                    </td>
+                    <td>
+                        <ul class="evidence-list">
+                            <li><span class="src src-dns">DNS</span> Resolver query logs: <code style="color:#f85149">rcode=NXDOMAIN</code> for <code style="color:#79c0ff">api.partner.internal</code> — PHZ no longer served to VPC resolvers</li>
+                            <li><span class="src src-lam">Lambda</span> Lambda logs: <code style="color:#f85149">error_message: "Name or service not known"</code>, <code style="color:#f85149">dns_resolution_ms: null</code> — resolution fails before any TCP connection is attempted</li>
+                            <li><span class="src src-tgw">TGW</span> TGW flow logs: no traffic at all (DNS never resolved to an IP to route toward)</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>NLB Target Failure</strong><br>
+                        <span style="font-size:11px;color:#7d8590">Partner EC2 instance stopped</span>
+                    </td>
+                    <td class="mono"><span class="rid">ecs-inject-nlb-failure.sh</span></td>
+                    <td>
+                        <span class="badge badge-red">nlb-unhealthy-targets</span><br>
+                        <span class="badge badge-red" style="margin-top:4px">cross-vpc-connectivity-down</span>
+                    </td>
+                    <td>
+                        <ul class="evidence-list">
+                            <li><span class="src src-nlb">NLB</span> NLB access logs: <code style="color:#f85149">action=fail</code> on health check connections; <code style="color:#f85149">target_status_code=-</code> (no response from stopped instance)</li>
+                            <li><span class="src src-vpc">VPC</span> Partner VPC flow logs: no return traffic from <code style="color:#79c0ff">10.1.10.163</code> to NLB health check source IPs — EC2 is not responding</li>
+                            <li><span class="src src-lam">Lambda</span> Lambda logs: <code style="color:#f85149">error_message: "Connection refused"</code> or <code style="color:#f85149">"timed out"</code> depending on TCP RST vs silence from stopped EC2</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>Security Group Block</strong><br>
+                        <span style="font-size:11px;color:#7d8590">Ingress rule for port 80 revoked on partner SG</span>
+                    </td>
+                    <td class="mono"><span class="rid">ecs-inject-tgw-sg-block.sh</span></td>
+                    <td>
+                        <span class="badge badge-red">nlb-unhealthy-targets</span><br>
+                        <span class="badge badge-red" style="margin-top:4px">cross-vpc-connectivity-down</span>
+                    </td>
+                    <td>
+                        <ul class="evidence-list">
+                            <li><span class="src src-vpc">VPC</span> Partner VPC flow logs: <code style="color:#f85149">action=REJECT</code> for traffic with <code style="color:#79c0ff">dstport=80</code> to <code style="color:#79c0ff">10.1.10.163</code> — security group is explicitly blocking the port</li>
+                            <li><span class="src src-lam">Lambda</span> Lambda logs: <code style="color:#f85149">error_message: "Connection refused"</code> or <code style="color:#f85149">"timed out"</code> (AWS SGs send RST on REJECT, resulting in immediate refusal rather than silent drop)</li>
+                            <li><span class="src src-tgw">TGW</span> TGW flow logs: packets <em>are present</em> (traffic crosses the TGW successfully) — distinguishes SG block from routing blackhole</li>
+                            <li><span class="src src-nlb">NLB</span> NLB access logs: health check failures begin within 10 s of SG change; <code style="color:#f85149">target_status_code=-</code></li>
+                        </ul>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-left">
+            Networking Demo — Retail Store Sample App &nbsp;|&nbsp;
+            Branch: <span class="tag-purple">feat/networking-demo-cicd</span> &nbsp;|&nbsp;
+            Terraform: <span class="tag-blue">terraform/networking-demo/</span>
+        </div>
+        <div class="footer-right">Generated: 2026-05-22</div>
+    </div>
+
+</div>
+</body>
+</html>

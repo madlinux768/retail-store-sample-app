@@ -8,6 +8,11 @@ resource "aws_lb" "partner" {
   load_balancer_type = "network"
   subnets            = var.app_private_subnet_ids
 
+  access_logs {
+    bucket  = aws_s3_bucket.nlb_logs.bucket
+    enabled = true
+  }
+
   tags = { Name = "partner-service-nlb" }
 }
 
