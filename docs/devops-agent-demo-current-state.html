@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Agent Demo — Current State</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1419;
+            color: #e6edf3;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #f0f6fc;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7d8590;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Section headers */
+        .section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f0f6fc;
+            border-bottom: 1px solid #21262d;
+            padding-bottom: 10px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #1f6feb;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .section-number.orange  { background: #d1611b; }
+        .section-number.purple  { background: #7c47d3; }
+        .section-number.green   { background: #1a7f37; }
+        .section-number.teal    { background: #1a6060; }
+        .section-number.yellow  { background: #9e6a03; }
+        .section-number.red     { background: #b91c1c; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: #161b22;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #30363d;
+        }
+        thead tr { background: #1c2128; }
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            color: #7d8590;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #30363d;
+        }
+        td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #21262d;
+            vertical-align: top;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #1c2128; }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #f0f6fc;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .card ul {
+            list-style: none;
+            font-size: 12px;
+        }
+        .card ul li {
+            padding: 3px 0;
+            color: #8b949e;
+            display: flex;
+            gap: 8px;
+        }
+        .card ul li .label {
+            color: #7d8590;
+            white-space: nowrap;
+            min-width: 120px;
+        }
+        .card ul li .value {
+            color: #e6edf3;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-green   { background: #1a7f3720; color: #3fb950; border: 1px solid #238636; }
+        .badge-blue    { background: #1f6feb20; color: #58a6ff; border: 1px solid #1f6feb; }
+        .badge-orange  { background: #d1611b20; color: #f0883e; border: 1px solid #d1611b; }
+        .badge-red     { background: #b91c1c20; color: #f85149; border: 1px solid #b91c1c; }
+        .badge-yellow  { background: #9e6a0320; color: #d29922; border: 1px solid #9e6a03; }
+        .badge-purple  { background: #7c47d320; color: #a371f7; border: 1px solid #7c47d3; }
+        .badge-gray    { background: #21262d;   color: #7d8590; border: 1px solid #30363d; }
+
+        /* Monospace IDs */
+        code {
+            font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 11.5px;
+            color: #d2a8ff;
+            background: #1c2128;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Fault injection table highlight */
+        td.pass  { color: #3fb950; font-weight: 600; }
+        td.fail  { color: #f85149; font-weight: 600; }
+        td.running { color: #d29922; font-weight: 600; }
+        td.crit  { color: #f85149; font-weight: 600; }
+        td.high  { color: #f0883e; font-weight: 600; }
+        td.medium { color: #d29922; font-weight: 600; }
+
+        /* Info row */
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 7px 0;
+            border-bottom: 1px solid #21262d;
+            font-size: 12px;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-key {
+            color: #7d8590;
+            min-width: 200px;
+            flex-shrink: 0;
+        }
+        .info-val { color: #e6edf3; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: #484f58;
+            font-size: 12px;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #21262d;
+        }
+
+        /* Warning callout */
+        .callout {
+            background: #1c2128;
+            border: 1px solid #30363d;
+            border-left: 3px solid #d29922;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 16px;
+        }
+        .callout strong { color: #d29922; }
+
+        /* Inline dot indicators */
+        .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .dot-green  { background: #3fb950; }
+        .dot-orange { background: #f0883e; }
+        .dot-red    { background: #f85149; }
+        .dot-gray   { background: #7d8590; }
+    </style>
+</head>
+<body>
+<div class="content">
+
+    <h1>DevOps Agent 3-Space Demo — Current State</h1>
+    <p class="subtitle">Live resource IDs and verified status as of 2026-05-26</p>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 1. Account Topology                              -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number">1</span>
+            Account Topology
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Account ID</th>
+                    <th>Region</th>
+                    <th>What's Deployed</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>App Account</strong></td>
+                    <td><code>173471018689</code></td>
+                    <td>us-west-2</td>
+                    <td>ECS Fargate cluster (5 services), CloudWatch alarms (56), NLB, Route53 PHZ, synthetic Lambda, observability stack, TGW attachment</td>
+                    <td><span class="badge badge-green">Active</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Spaces Account</strong></td>
+                    <td><code>590183961036</code></td>
+                    <td>us-west-2</td>
+                    <td>3 DevOps Agent spaces (manually created): DevOps Team, Security Team, Networking Team</td>
+                    <td><span class="badge badge-green">Active</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Security Tooling</strong></td>
+                    <td><code>871440770885</code></td>
+                    <td>us-west-2</td>
+                    <td>Security Hub admin (CIS v1.4 + FSBP), GuardDuty, Inspector, cross-account read role</td>
+                    <td><span class="badge badge-green">Active</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Networking Account</strong></td>
+                    <td><code>378147474529</code></td>
+                    <td>us-west-2</td>
+                    <td>Partner VPC, Transit Gateway, partner EC2 instance, TGW attachment, VPC/TGW flow logs</td>
+                    <td><span class="badge badge-green">Active</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 2. Space 1: DevOps Team                          -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number" style="background:#1f6feb;">2</span>
+            Space 1: DevOps Team
+        </div>
+
+        <div class="two-col">
+            <!-- ECS Services -->
+            <div>
+                <div class="card">
+                    <div class="card-title"><span class="dot dot-green"></span>ECS Fargate Services — <code>retail-store-ecs-cluster</code></div>
+                    <table style="border:none; background:transparent; border-radius:0;">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Language</th>
+                                <th>Tasks</th>
+                                <th>X-Ray</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="dot dot-green"></span>ui</td>
+                                <td>Java / Spring Boot</td>
+                                <td>1/1</td>
+                                <td><span class="badge badge-green">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="dot dot-green"></span>catalog</td>
+                                <td>Go / Gin</td>
+                                <td>1/1</td>
+                                <td><span class="badge badge-gray">Not supported</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="dot dot-green"></span>carts</td>
+                                <td>Java / Spring Boot</td>
+                                <td>1/1</td>
+                                <td><span class="badge badge-green">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="dot dot-green"></span>orders</td>
+                                <td>Java / Spring Boot</td>
+                                <td>1/1</td>
+                                <td><span class="badge badge-green">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="dot dot-green"></span>checkout</td>
+                                <td>Node.js / NestJS</td>
+                                <td>1/1</td>
+                                <td><span class="badge badge-green">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Observability -->
+            <div>
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-title"><span class="dot dot-green"></span>Observability Stack</div>
+                    <ul>
+                        <li><span class="label">CloudWatch Alarms</span><span class="value">56 total (<code>retail-store-ecs-*</code> prefix)</span></li>
+                        <li><span class="label">Application Signals</span><span class="value"><span class="badge badge-green">Enabled</span></span></li>
+                        <li><span class="label">X-Ray Tracing</span><span class="value">ui, carts, checkout, orders</span></li>
+                        <li><span class="label">X-Ray Coverage</span><span class="value">4 of 5 services (catalog excluded)</span></li>
+                        <li><span class="label">Catalog Gap</span><span class="value">Go not supported by App Signals auto-instrumentation</span></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title">Fault Injection Scripts (Space 1)</div>
+                    <ul>
+                        <li><span class="value"><code>ecs-inject-catalog-cpu-latency.sh</code></span></li>
+                        <li><span class="value"><code>ecs-inject-cart-memory-leak.sh</code></span></li>
+                        <li><span class="value"><code>ecs-inject-rds-sg-block.sh</code></span></li>
+                        <li><span class="value"><code>ecs-inject-dynamodb-stress.sh</code></span></li>
+                        <li><span class="value"><code>ecs-inject-network-partition.sh</code></span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 3. Space 2: Security Team                        -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number orange">3</span>
+            Space 2: Security Team
+        </div>
+
+        <div class="two-col">
+            <!-- Security Hub -->
+            <div>
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-title"><span class="dot dot-green"></span>Security Hub Standards</div>
+                    <ul>
+                        <li><span class="label">CIS AWS Foundations</span><span class="value"><span class="badge badge-green">Enabled</span> v1.4.0 (2026-05-26)</span></li>
+                        <li><span class="label">AWS FSBP</span><span class="value"><span class="badge badge-green">Enabled</span> (2026-05-26)</span></li>
+                        <li><span class="label">Admin Account</span><span class="value"><code>871440770885</code></span></li>
+                        <li><span class="label">Cross-account Role</span><span class="value"><code>SecurityAgentReadOnly</code></span></li>
+                        <li><span class="label">Role Account</span><span class="value"><code>871440770885</code></span></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title"><span class="dot dot-orange"></span>GuardDuty Findings</div>
+                    <table style="border:none; background:transparent; border-radius:0;">
+                        <thead>
+                            <tr><th>Finding Type</th><th>Severity</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Discovery:IAMUser/AnomalousBehavior</td>
+                                <td><span class="badge badge-orange">8.0</span></td>
+                                <td>Active</td>
+                            </tr>
+                            <tr>
+                                <td>Impact:IAMUser/AnomalousBehavior</td>
+                                <td><span class="badge badge-orange">8.0</span></td>
+                                <td>Active</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Key findings -->
+            <div>
+                <div class="card">
+                    <div class="card-title"><span class="dot dot-red"></span>Key Security Findings Available</div>
+                    <table style="border:none; background:transparent; border-radius:0;">
+                        <thead>
+                            <tr><th>Control</th><th>Severity</th><th>Detail</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>EC2.19</td>
+                                <td class="crit">CRITICAL</td>
+                                <td>5 security groups with unrestricted port access</td>
+                            </tr>
+                            <tr>
+                                <td>IAM.1</td>
+                                <td class="high">HIGH</td>
+                                <td>60+ policies with overly broad permissions (incl. <code>retail-store-ecs-carts-dynamo</code>)</td>
+                            </tr>
+                            <tr>
+                                <td>Inspector CVE</td>
+                                <td class="high">HIGH</td>
+                                <td><code>CVE-2026-32283</code> in <code>retail-store-catalog</code> ECR image</td>
+                            </tr>
+                            <tr>
+                                <td>Inspector CVE</td>
+                                <td class="medium">MEDIUM</td>
+                                <td><code>CVE-2026-4224</code> in <code>retail-store-catalog</code> ECR image</td>
+                            </tr>
+                            <tr>
+                                <td>FSBP</td>
+                                <td class="medium">MEDIUM</td>
+                                <td>ALB HTTPS, ElastiCache transit encryption — still evaluating</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 4. Space 3: Networking Team                      -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number purple">4</span>
+            Space 3: Networking Team
+        </div>
+
+        <div class="three-col" style="margin-bottom:16px;">
+            <!-- Networking account resources -->
+            <div class="card">
+                <div class="card-title"><span class="dot dot-green"></span>Networking Account <code>378147474529</code></div>
+                <ul>
+                    <li><span class="label">Partner VPC</span><span class="value"><code>vpc-0a263cdf68415e30b</code></span></li>
+                    <li><span class="label">CIDR</span><span class="value">10.1.0.0/16</span></li>
+                    <li><span class="label">Transit Gateway</span><span class="value"><code>tgw-01096907d4648d941</code></span></li>
+                    <li><span class="label">Partner EC2</span><span class="value"><code>i-0ae35fba922471a0e</code></span></li>
+                    <li><span class="label">Partner Private IP</span><span class="value">10.1.10.163</span></li>
+                    <li><span class="label">Partner EC2 State</span><span class="value"><span class="badge badge-green">running</span></span></li>
+                    <li><span class="label">Partner SG</span><span class="value"><code>sg-0c4f12bf1bc479afe</code></span></li>
+                    <li><span class="label">TGW Attach (partner)</span><span class="value"><code>tgw-attach-0b5bb1275b7a97f30</code></span></li>
+                    <li><span class="label">TGW Attach (app)</span><span class="value"><code>tgw-attach-07ccbabb6ad95078d</code></span></li>
+                    <li><span class="label">Cross-account Role</span><span class="value"><code>NetworkingAgentReadOnly</code></span></li>
+                </ul>
+            </div>
+
+            <!-- App account networking resources -->
+            <div class="card">
+                <div class="card-title"><span class="dot dot-green"></span>App Account Networking <code>173471018689</code></div>
+                <ul>
+                    <li><span class="label">NLB Name</span><span class="value"><code>partner-service-nlb</code></span></li>
+                    <li><span class="label">NLB Target</span><span class="value"><span class="badge badge-green">healthy</span></span></li>
+                    <li><span class="label">Route53 PHZ Name</span><span class="value"><code>partner.internal</code></span></li>
+                    <li><span class="label">Route53 PHZ ID</span><span class="value"><code>Z05579592LTL36F75RLS5</code></span></li>
+                    <li><span class="label">Synthetic Lambda</span><span class="value"><code>networking-demo-connectivity-check</code></span></li>
+                    <li><span class="label">Lambda Schedule</span><span class="value">Every 60s</span></li>
+                    <li><span class="label">Alarms (total)</span><span class="value">4 — all <span class="badge badge-green">OK</span></span></li>
+                </ul>
+            </div>
+
+            <!-- Alarms detail -->
+            <div class="card">
+                <div class="card-title">CloudWatch Alarms — Networking</div>
+                <table style="border:none; background:transparent; border-radius:0;">
+                    <thead>
+                        <tr><th>Alarm</th><th>State</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>cross-vpc-connectivity-down</code></td>
+                            <td><span class="badge badge-green">OK</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>dns-connectivity-down</code></td>
+                            <td><span class="badge badge-green">OK</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>cross-vpc-latency-high</code></td>
+                            <td><span class="badge badge-green">OK</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>nlb-unhealthy-targets</code></td>
+                            <td><span class="badge badge-green">OK</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Logging -->
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-title">Logging Sources — Networking Demo</div>
+            <table style="border:none; background:transparent; border-radius:0;">
+                <thead>
+                    <tr><th>Source</th><th>Destination</th><th>Retention</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>VPC Flow Logs (partner VPC)</td>
+                        <td><code>/aws/vpc/networking-demo-partner</code></td>
+                        <td>7 days</td>
+                        <td><span class="badge badge-green">ACTIVE</span></td>
+                    </tr>
+                    <tr>
+                        <td>TGW Flow Logs</td>
+                        <td><code>/aws/tgw/networking-demo</code></td>
+                        <td>7 days</td>
+                        <td><span class="badge badge-green">ACTIVE</span></td>
+                    </tr>
+                    <tr>
+                        <td>NLB Access Logs</td>
+                        <td>S3: <code>networking-demo-nlb-logs-173471018689</code></td>
+                        <td>S3 lifecycle</td>
+                        <td><span class="badge badge-green">Enabled</span></td>
+                    </tr>
+                    <tr>
+                        <td>Route53 Resolver Query Logs</td>
+                        <td><code>/aws/route53resolver/networking-demo</code></td>
+                        <td>7 days</td>
+                        <td><span class="badge badge-green">ACTIVE</span></td>
+                    </tr>
+                    <tr>
+                        <td>Lambda Synthetic Check Logs</td>
+                        <td><code>/aws/lambda/networking-demo-connectivity-check</code></td>
+                        <td>7 days</td>
+                        <td><span class="badge badge-green">ACTIVE</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Fault injection scripts -->
+        <div class="card">
+            <div class="card-title">Fault Injection Scripts — Space 3 (all tested 2026-05-26)</div>
+            <table style="border:none; background:transparent; border-radius:0;">
+                <thead>
+                    <tr><th>Script</th><th>Rollback</th><th>Failure Layer</th><th>Mechanism</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ecs-inject-tgw-route-drop.sh</code></td>
+                        <td><code>ecs-rollback-tgw-route-drop.sh</code></td>
+                        <td>L3</td>
+                        <td>TGW route table blackhole</td>
+                    </tr>
+                    <tr>
+                        <td><code>ecs-inject-dns-failure.sh</code></td>
+                        <td><code>ecs-rollback-dns-failure.sh</code></td>
+                        <td>L7 (DNS)</td>
+                        <td>A record deletion in Route53 PHZ</td>
+                    </tr>
+                    <tr>
+                        <td><code>ecs-inject-nlb-failure.sh</code></td>
+                        <td><code>ecs-rollback-nlb-failure.sh</code></td>
+                        <td>L4</td>
+                        <td>Stop partner EC2 instance</td>
+                    </tr>
+                    <tr>
+                        <td><code>ecs-inject-tgw-sg-block.sh</code></td>
+                        <td><code>ecs-rollback-tgw-sg-block.sh</code></td>
+                        <td>L3 / L4</td>
+                        <td>Revoke inbound SG rule on partner</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 5. CI/CD Pipeline                                -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number green">5</span>
+            CI/CD Pipeline
+        </div>
+
+        <div class="two-col">
+            <div class="card">
+                <div class="card-title">GitHub Actions — Networking Deployment</div>
+                <ul>
+                    <li><span class="label">Repository</span><span class="value"><code>madlinux768/retail-store-sample-app</code></span></li>
+                    <li><span class="label">Workflow File</span><span class="value"><code>deploy-networking.yml</code></span></li>
+                    <li><span class="label">Trigger</span><span class="value"><code>workflow_dispatch</code></span></li>
+                    <li><span class="label">Auth Method</span><span class="value">OIDC → App account role</span></li>
+                    <li><span class="label">Networking Access</span><span class="value">Terraform <code>assume_role</code> into <code>378147474529</code></span></li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title">Workflow Inputs</div>
+                <table style="border:none; background:transparent; border-radius:0;">
+                    <thead>
+                        <tr><th>Input</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>app_vpc_id</code></td><td>App account VPC ID</td></tr>
+                        <tr><td><code>app_private_subnet_ids</code></td><td>Subnet IDs for TGW attachment</td></tr>
+                        <tr><td><code>app_route_table_id</code></td><td>Route table to add TGW route</td></tr>
+                        <tr><td><code>auto_approve</code></td><td>Skip Terraform plan review (boolean)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 6. Test Results                                  -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number teal">6</span>
+            Fault Injection Test Results — 2026-05-26
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Test Scenario</th>
+                    <th>Start (UTC)</th>
+                    <th>End (UTC)</th>
+                    <th>Lambda Result</th>
+                    <th>Log Evidence</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>TGW Route Blackhole</strong></td>
+                    <td>~16:13</td>
+                    <td>~16:15</td>
+                    <td><code>ip=0, dns=0</code></td>
+                    <td>Lambda: "timed out"; TGW logs: traffic stops after blackhole</td>
+                    <td class="pass">PASS</td>
+                </tr>
+                <tr>
+                    <td><strong>DNS A Record Deletion</strong></td>
+                    <td>~16:25</td>
+                    <td>~16:41</td>
+                    <td><code>ip=1, dns=0</code></td>
+                    <td>Resolver query logs: NXDOMAIN; Lambda: DNS resolution error</td>
+                    <td class="pass">PASS</td>
+                </tr>
+                <tr>
+                    <td><strong>NLB Target Stop (EC2)</strong></td>
+                    <td>~16:42</td>
+                    <td>~16:46</td>
+                    <td><code>ip=0, dns=0</code></td>
+                    <td>NLB: unhealthy target; VPC flow logs: health check traffic drops</td>
+                    <td class="pass">PASS</td>
+                </tr>
+                <tr>
+                    <td><strong>SG Inbound Revoke</strong></td>
+                    <td>~16:47</td>
+                    <td>~16:52</td>
+                    <td><code>ip=0, dns=0</code></td>
+                    <td>VPC flow logs: REJECT; TGW logs: traffic still forwarding (key differentiator)</td>
+                    <td class="pass">PASS</td>
+                </tr>
+                <tr>
+                    <td><strong>DynamoDB Stress</strong></td>
+                    <td>22:28</td>
+                    <td><em>ongoing</em></td>
+                    <td>N/A</td>
+                    <td>~850 WCU/min consumed; stress task running in ECS</td>
+                    <td class="running">RUNNING</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── -->
+    <!-- 7. Known Limitations                             -->
+    <!-- ──────────────────────────────────────────────── -->
+    <div class="section">
+        <div class="section-title">
+            <span class="section-number yellow">7</span>
+            Known Limitations
+        </div>
+
+        <div class="card">
+            <table style="border:none; background:transparent; border-radius:0;">
+                <thead>
+                    <tr><th>Area</th><th>Limitation</th><th>Reason / Workaround</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>DNS Injection</strong></td>
+                        <td>Uses A record deletion, not VPC disassociation</td>
+                        <td>AWS blocks removing the last VPC from a PHZ; A record deletion achieves the same observable effect</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DNS Rollback</strong></td>
+                        <td>Lambda containers cache NXDOMAIN for 1–2 min after A record restore</td>
+                        <td>Allow ~2 min after running rollback before retesting</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Catalog Observability</strong></td>
+                        <td>No X-Ray traces for catalog service</td>
+                        <td>Go is not supported by Application Signals auto-instrumentation; manual SDK integration required</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GuardDuty / DynamoDB Stress</strong></td>
+                        <td>New findings may take 15–30 min to appear after starting stress</td>
+                        <td>Start the stress task well before the demo; run <code>ecs-rollback-dynamodb-stress.sh</code> when done</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FSBP Controls</strong></td>
+                        <td>Some controls still in EVALUATING state</td>
+                        <td>ALB HTTPS and ElastiCache transit encryption controls need additional time to first-evaluate; no action required</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        Last Updated: <strong>2026-05-26T22:50Z</strong> &mdash; DevOps Agent 3-Space Demo &mdash; retail-store-sample-app
+    </div>
+
+</div>
+</body>
+</html>
