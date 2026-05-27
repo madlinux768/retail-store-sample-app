@@ -15,13 +15,15 @@ module "monitoring" {
   container_insights_log_group_name = var.lifecycle_events_enabled ? aws_cloudwatch_log_group.ecs_container_insights[0].name : ""
   container_insights_log_group_arn  = var.lifecycle_events_enabled ? aws_cloudwatch_log_group.ecs_container_insights[0].arn : ""
 
-  catalog_db_cluster_id                    = "${var.environment_name}-catalog"
-  orders_db_cluster_id                     = "${var.environment_name}-orders"
-  carts_dynamodb_table_name                = var.carts_dynamodb_table_name
+  catalog_db_cluster_id                     = "${var.environment_name}-catalog"
+  orders_db_cluster_id                      = "${var.environment_name}-orders"
+  carts_dynamodb_table_name                 = var.carts_dynamodb_table_name
   checkout_elasticache_replication_group_id = "${var.environment_name}-checkout"
 
   alert_email = var.alert_email
   tags        = var.tags
 
   application_signals_slos_enabled = var.application_signals_slos_enabled
+
+  azure_servicebus_enabled = var.azure_servicebus_enabled
 }

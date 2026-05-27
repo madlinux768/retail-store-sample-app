@@ -3,9 +3,9 @@ resource "aws_cloudwatch_contributor_insight_rule" "top_error_endpoints" {
   rule_state = "ENABLED"
 
   rule_definition = jsonencode({
-    Schema       = { Name = "CloudWatchLogRule", Version = 1 }
+    Schema        = { Name = "CloudWatchLogRule", Version = 1 }
     LogGroupNames = [var.log_group_name]
-    LogFormat    = "JSON"
+    LogFormat     = "JSON"
     Contribution = {
       Keys = ["$.\"service.name\"", "$.\"http.url\"", "$.\"error.type\""]
       Filters = [
@@ -25,14 +25,14 @@ resource "aws_cloudwatch_contributor_insight_rule" "top_slow_requests" {
   rule_state = "ENABLED"
 
   rule_definition = jsonencode({
-    Schema       = { Name = "CloudWatchLogRule", Version = 1 }
+    Schema        = { Name = "CloudWatchLogRule", Version = 1 }
     LogGroupNames = [var.container_insights_log_group_name]
-    LogFormat    = "JSON"
+    LogFormat     = "JSON"
     Contribution = {
       Keys = ["$.TaskId", "$.ServiceName"]
       Filters = [
         {
-          Match     = "$.Duration"
+          Match       = "$.Duration"
           GreaterThan = 2000
         }
       ]
@@ -46,14 +46,14 @@ resource "aws_cloudwatch_contributor_insight_rule" "top_request_sources" {
   rule_state = "ENABLED"
 
   rule_definition = jsonencode({
-    Schema       = { Name = "CloudWatchLogRule", Version = 1 }
+    Schema        = { Name = "CloudWatchLogRule", Version = 1 }
     LogGroupNames = [var.log_group_name]
-    LogFormat    = "JSON"
+    LogFormat     = "JSON"
     Contribution = {
       Keys = ["$.\"http.client_ip\"", "$.\"http.user_agent\""]
       Filters = [
         {
-          Match = "$.\"http.client_ip\""
+          Match     = "$.\"http.client_ip\""
           IsPresent = true
         }
       ]

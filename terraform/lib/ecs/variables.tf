@@ -177,3 +177,9 @@ variable "application_signals_slos_enabled" {
   default     = false
   description = "Enable Application Signals SLOs (requires services to be discovered first)"
 }
+
+variable "azure_servicebus_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable Azure Service Bus as the orders messaging provider. When false (default), no Azure resources are created and the AWS-side plan is byte-identical to the pre-feature plan."
+}
