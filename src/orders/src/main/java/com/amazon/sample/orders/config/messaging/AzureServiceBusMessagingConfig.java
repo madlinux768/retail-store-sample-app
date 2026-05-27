@@ -126,10 +126,10 @@ public class AzureServiceBusMessagingConfig {
     ) {
       throw new BeanCreationException(
         "Invalid Azure Service Bus configuration: " +
-        CONNECTION_STRING_PROPERTY +
-        " must be set and must start with '" +
-        REQUIRED_CONNECTION_STRING_PREFIX +
-        "' (TLS-only AMQPS endpoint). The value itself is not logged."
+          CONNECTION_STRING_PROPERTY +
+          " must be set and must start with '" +
+          REQUIRED_CONNECTION_STRING_PREFIX +
+          "' (TLS-only AMQPS endpoint). The value itself is not logged."
       );
     }
   }
@@ -139,18 +139,16 @@ public class AzureServiceBusMessagingConfig {
     log.info("Using Azure Service Bus messaging");
     // No transportType override: the SDK defaults to AMQP-over-TLS for
     // Endpoint=sb:// connection strings (requirement 4.5).
-    return new ServiceBusClientBuilder()
-      .connectionString(properties.getConnectionString());
+    return new ServiceBusClientBuilder().connectionString(
+      properties.getConnectionString()
+    );
   }
 
   @Bean
   public ServiceBusSenderClient serviceBusSenderClient(
     ServiceBusClientBuilder builder
   ) {
-    return builder
-      .sender()
-      .queueName(properties.getQueueName())
-      .buildClient();
+    return builder.sender().queueName(properties.getQueueName()).buildClient();
   }
 
   @Bean
@@ -185,10 +183,7 @@ public class AzureServiceBusMessagingConfig {
   public HealthIndicator azureServiceBusHealthIndicator(
     ServiceBusAdministrationClient admin
   ) {
-    return new AzureServiceBusHealthIndicator(
-      admin,
-      properties.getQueueName()
-    );
+    return new AzureServiceBusHealthIndicator(admin, properties.getQueueName());
   }
 
   /**
@@ -244,22 +239,26 @@ public class AzureServiceBusMessagingConfig {
     // Allowlist filter: rename the failures counter and deny everything
     // else so unrelated Micrometer meters (HTTP, JVM, Spring Boot
     // actuator, etc.) are NOT exported to CloudWatch (requirement 6.2).
-    registry.config().meterFilter(new MeterFilter() {
-      @Override
-      public Meter.Id map(Meter.Id id) {
-        if (FAILURES_METER_NAME.equals(id.getName())) {
-          return id.withName(CLOUDWATCH_METRIC_NAME);
-        }
-        return id;
-      }
+    registry
+      .config()
+      .meterFilter(
+        new MeterFilter() {
+          @Override
+          public Meter.Id map(Meter.Id id) {
+            if (FAILURES_METER_NAME.equals(id.getName())) {
+              return id.withName(CLOUDWATCH_METRIC_NAME);
+            }
+            return id;
+          }
 
-      @Override
-      public MeterFilterReply accept(Meter.Id id) {
-        return CLOUDWATCH_METRIC_NAME.equals(id.getName())
-          ? MeterFilterReply.ACCEPT
-          : MeterFilterReply.DENY;
-      }
-    });
+          @Override
+          public MeterFilterReply accept(Meter.Id id) {
+            return CLOUDWATCH_METRIC_NAME.equals(id.getName())
+              ? MeterFilterReply.ACCEPT
+              : MeterFilterReply.DENY;
+          }
+        }
+      );
 
     return registry;
   }

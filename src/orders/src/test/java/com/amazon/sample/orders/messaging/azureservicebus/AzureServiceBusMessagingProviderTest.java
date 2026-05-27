@@ -106,10 +106,13 @@ class AzureServiceBusMessagingProviderTest {
 
     ServiceBusMessage sent = captureSentMessage();
     assertThat(sent.getContentType()).isEqualTo("application/json");
-    assertThat(sent.getApplicationProperties())
-      .containsEntry("eventType", "OrderCreatedEvent");
-    assertThat(sent.getBody().toString())
-      .isEqualTo(mapper.writeValueAsString(event));
+    assertThat(sent.getApplicationProperties()).containsEntry(
+      "eventType",
+      "OrderCreatedEvent"
+    );
+    assertThat(sent.getBody().toString()).isEqualTo(
+      mapper.writeValueAsString(event)
+    );
   }
 
   @Test
@@ -121,10 +124,13 @@ class AzureServiceBusMessagingProviderTest {
 
     ServiceBusMessage sent = captureSentMessage();
     assertThat(sent.getContentType()).isEqualTo("application/json");
-    assertThat(sent.getApplicationProperties())
-      .containsEntry("eventType", "OrderCancelledEvent");
-    assertThat(sent.getBody().toString())
-      .isEqualTo(mapper.writeValueAsString(event));
+    assertThat(sent.getApplicationProperties()).containsEntry(
+      "eventType",
+      "OrderCancelledEvent"
+    );
+    assertThat(sent.getBody().toString()).isEqualTo(
+      mapper.writeValueAsString(event)
+    );
   }
 
   // ------------------------------------------------------------------
@@ -133,7 +139,9 @@ class AzureServiceBusMessagingProviderTest {
 
   @Test
   void publishEvent_whenSenderThrows_incrementsCounterOnceAndRethrows() {
-    RuntimeException brokerError = new RuntimeException("simulated broker error");
+    RuntimeException brokerError = new RuntimeException(
+      "simulated broker error"
+    );
     doThrow(brokerError).when(sender).sendMessage(any(ServiceBusMessage.class));
 
     OrderCreatedEvent event = sampleOrderCreatedEvent();
@@ -162,8 +170,8 @@ class AzureServiceBusMessagingProviderTest {
     // both forbidden tokens, so the assertion proves the provider does NOT
     // forward exception messages or stack traces into its log line.
     String forbiddenSecret =
-      "Endpoint=sb://example.servicebus.windows.net/;SharedAccessKeyName=fake;"
-      + "SharedAccessKey=ZmFrZQ==";
+      "Endpoint=sb://example.servicebus.windows.net/;SharedAccessKeyName=fake;" +
+      "SharedAccessKey=ZmFrZQ==";
     RuntimeException brokerError = new RuntimeException(
       "auth failed: " + forbiddenSecret
     );
@@ -174,8 +182,9 @@ class AzureServiceBusMessagingProviderTest {
     );
     try {
       OrderCreatedEvent event = sampleOrderCreatedEvent();
-      assertThatThrownBy(() -> provider.publishEvent(event))
-        .isInstanceOf(MessagingPublishException.class);
+      assertThatThrownBy(() -> provider.publishEvent(event)).isInstanceOf(
+        MessagingPublishException.class
+      );
 
       String captured = appender.renderedText();
       assertThat(captured)
@@ -365,16 +374,11 @@ class AzureServiceBusMessagingProviderTest {
         previousLevel = existing.getLevel();
       } else {
         previousLevel = existing.getLevel();
-        dedicated = new LoggerConfig(
-          loggerClass.getName(),
-          Level.ALL,
-          true
-        );
+        dedicated = new LoggerConfig(loggerClass.getName(), Level.ALL, true);
         cfg.addLogger(loggerClass.getName(), dedicated);
       }
 
-      Layout<? extends Serializable> layout = PatternLayout
-        .newBuilder()
+      Layout<? extends Serializable> layout = PatternLayout.newBuilder()
         .withPattern("%level %msg%n")
         .build();
       CapturingAppender appender = new CapturingAppender(

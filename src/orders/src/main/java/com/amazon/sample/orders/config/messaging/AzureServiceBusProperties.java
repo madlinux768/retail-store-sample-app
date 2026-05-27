@@ -33,7 +33,8 @@ public class AzureServiceBusProperties {
   public static final String PREFIX = "retail.orders.messaging.azureservicebus";
 
   @NotBlank(
-      message = "retail.orders.messaging.azureservicebus.connectionString must not be blank")
+    message = "retail.orders.messaging.azureservicebus.connectionString must not be blank"
+  )
   private String connectionString;
 
   private String queueName;

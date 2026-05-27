@@ -91,25 +91,25 @@ class AzureServiceBusMissingConnectionStringTest {
     };
 
     assertThatThrownBy(() -> {
-        try (ConfigurableApplicationContext ignored = app.run(args)) {
-          // Unreachable: startup must fail before the context is
-          // returned. If we ever reach this line the invariant the
-          // spec asks for is broken.
-        }
-      })
+      try (ConfigurableApplicationContext ignored = app.run(args)) {
+        // Unreachable: startup must fail before the context is
+        // returned. If we ever reach this line the invariant the
+        // spec asks for is broken.
+      }
+    })
       .as(
         "startup must fail when retail.orders.messaging.provider=" +
-        "azureservicebus and connectionString is empty (R1.5)"
+          "azureservicebus and connectionString is empty (R1.5)"
       )
       .isInstanceOf(BeanCreationException.class)
       .satisfies(t ->
         assertThat(collectChainMessages(t))
           .as(
             "an exception in the failure cause chain must name the " +
-            "missing property '" +
-            CONNECTION_STRING_PROPERTY +
-            "' so operators can locate the misconfiguration in " +
-            "container logs without seeing the connection string itself"
+              "missing property '" +
+              CONNECTION_STRING_PROPERTY +
+              "' so operators can locate the misconfiguration in " +
+              "container logs without seeing the connection string itself"
           )
           .contains("connectionString")
       );

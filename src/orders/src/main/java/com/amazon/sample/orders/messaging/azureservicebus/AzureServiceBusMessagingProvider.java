@@ -70,8 +70,9 @@ public class AzureServiceBusMessagingProvider implements MessagingProvider {
     String eventType = event.getClass().getSimpleName();
     try {
       String body = mapper.writeValueAsString(event);
-      ServiceBusMessage msg = new ServiceBusMessage(body)
-        .setContentType("application/json");
+      ServiceBusMessage msg = new ServiceBusMessage(body).setContentType(
+        "application/json"
+      );
       msg.getApplicationProperties().put("eventType", eventType);
       sender.sendMessage(msg);
     } catch (Exception e) {

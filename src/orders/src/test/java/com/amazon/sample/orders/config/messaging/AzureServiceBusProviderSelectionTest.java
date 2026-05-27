@@ -50,9 +50,9 @@ import org.springframework.context.ApplicationContext;
 @SpringBootTest(
   properties = {
     "retail.orders.messaging.provider=azureservicebus",
-    "retail.orders.messaging.azureservicebus.connectionString="
-    + "Endpoint=sb://test.servicebus.windows.net/;"
-    + "SharedAccessKeyName=fake;SharedAccessKey=ZmFrZQ==",
+    "retail.orders.messaging.azureservicebus.connectionString=" +
+      "Endpoint=sb://test.servicebus.windows.net/;" +
+      "SharedAccessKeyName=fake;SharedAccessKey=ZmFrZQ==",
     "retail.orders.messaging.azureservicebus.queueName=test-queue",
   }
 )
@@ -70,7 +70,7 @@ class AzureServiceBusProviderSelectionTest {
     assertThat(beans)
       .as(
         "exactly one MessagingProvider bean must be registered " +
-        "regardless of which provider value is selected (Property 1)"
+          "regardless of which provider value is selected (Property 1)"
       )
       .hasSize(1);
 
@@ -78,7 +78,7 @@ class AzureServiceBusProviderSelectionTest {
     assertThat(provider)
       .as(
         "the active MessagingProvider must be the Azure Service Bus " +
-        "implementation when retail.orders.messaging.provider=azureservicebus"
+          "implementation when retail.orders.messaging.provider=azureservicebus"
       )
       .isInstanceOf(AzureServiceBusMessagingProvider.class);
   }

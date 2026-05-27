@@ -11,12 +11,12 @@ for wiring details).
 
 ## Resources created
 
-| Resource | Notes |
-|---|---|
-| `azurerm_resource_group` | Holds the namespace and queue. Tagged. |
-| `azurerm_servicebus_namespace` | SKU is locked to `Basic` by variable validation. Tagged. |
-| `azurerm_servicebus_queue` | Single queue. **Not tagged** — the AzureRM resource has no `tags` attribute. Documented exception to the repository tagging rule. |
-| `azurerm_servicebus_queue_authorization_rule` | `send=true, listen=false, manage=false`. The namespace-level `RootManageSharedAccessKey` is intentionally not used. |
+| Resource                                      | Notes                                                                                                                             |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `azurerm_resource_group`                      | Holds the namespace and queue. Tagged.                                                                                            |
+| `azurerm_servicebus_namespace`                | SKU is locked to `Basic` by variable validation. Tagged.                                                                          |
+| `azurerm_servicebus_queue`                    | Single queue. **Not tagged** — the AzureRM resource has no `tags` attribute. Documented exception to the repository tagging rule. |
+| `azurerm_servicebus_queue_authorization_rule` | `send=true, listen=false, manage=false`. The namespace-level `RootManageSharedAccessKey` is intentionally not used.               |
 
 ## Authentication
 
@@ -52,22 +52,22 @@ follow-up in the open questions section of the design document.
 
 ## Variable contract
 
-| Input | Type | Required | Default | Constraint |
-|---|---|---|---|---|
-| `namespace_name` | string | yes | — | Must be globally unique across Azure. |
-| `queue_name` | string | yes | — | |
-| `resource_group_name` | string | yes | — | |
-| `location` | string | no | `westus2` | |
-| `sku` | string | no | `Basic` | Validation rejects any value other than `Basic` (cost ceiling, R7.1). |
-| `tags` | map(string) | yes | — | Must contain keys `Environment` and `Project`, plus `auto-delete=no` and `ManagedBy=Terraform`. |
+| Input                 | Type        | Required | Default   | Constraint                                                                                      |
+| --------------------- | ----------- | -------- | --------- | ----------------------------------------------------------------------------------------------- |
+| `namespace_name`      | string      | yes      | —         | Must be globally unique across Azure.                                                           |
+| `queue_name`          | string      | yes      | —         |                                                                                                 |
+| `resource_group_name` | string      | yes      | —         |                                                                                                 |
+| `location`            | string      | no       | `westus2` |                                                                                                 |
+| `sku`                 | string      | no       | `Basic`   | Validation rejects any value other than `Basic` (cost ceiling, R7.1).                           |
+| `tags`                | map(string) | yes      | —         | Must contain keys `Environment` and `Project`, plus `auto-delete=no` and `ManagedBy=Terraform`. |
 
 ## Outputs
 
-| Output | Type | Sensitive | Use |
-|---|---|---|---|
-| `primary_connection_string` | string | yes | Push into AWS Secrets Manager and inject into the orders ECS task via the `secrets =` block. Never log, never echo. |
-| `namespace_id` | string | no | Reference for downstream Azure resources or audit. |
-| `queue_id` | string | no | Reference for downstream Azure resources or audit. |
+| Output                      | Type   | Sensitive | Use                                                                                                                 |
+| --------------------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| `primary_connection_string` | string | yes       | Push into AWS Secrets Manager and inject into the orders ECS task via the `secrets =` block. Never log, never echo. |
+| `namespace_id`              | string | no        | Reference for downstream Azure resources or audit.                                                                  |
+| `queue_id`                  | string | no        | Reference for downstream Azure resources or audit.                                                                  |
 
 ## Notes
 
