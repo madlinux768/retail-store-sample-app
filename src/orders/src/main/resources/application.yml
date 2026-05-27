@@ -30,6 +30,9 @@ retail:
         password: ""
       sqs:
         topic: ""
+      azureservicebus:
+        connectionString: ""
+        queueName: ""
 
 springdoc:
   api-docs:
