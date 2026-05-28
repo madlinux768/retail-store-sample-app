@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -28,4 +32,13 @@ provider "aws" {
       auto-delete = "no"
     }
   }
+}
+
+# The azurerm provider is configured unconditionally so the root module can
+# reference the gated terraform/lib/azure-servicebus module. When
+# azure_servicebus_enabled = false, no Azure resources are created and no
+# Azure auth is required at plan or apply time.
+provider "azurerm" {
+  features {}
+  subscription_id = var.azure_subscription_id
 }
