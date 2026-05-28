@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Agent Demo — Investigation Prompts</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1419;
+            color: #e6edf3;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        h1 { text-align: center; font-size: 24px; font-weight: 600; margin-bottom: 8px; color: #f0f6fc; }
+        .subtitle { text-align: center; color: #7d8590; font-size: 14px; margin-bottom: 40px; }
+        h2 { font-size: 18px; font-weight: 600; margin-top: 40px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+        h3 { font-size: 14px; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.5px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .persona-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 8px; }
+        .persona-sre { background: #1f6feb22; color: #58a6ff; border: 1px solid #1f6feb; }
+        .persona-security { background: #f0883e22; color: #f0883e; border: 1px solid #f0883e; }
+        .persona-network { background: #a371f722; color: #a371f7; border: 1px solid #a371f7; }
+        .prompt-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .prompt-card:hover { border-color: #484f58; }
+        .prompt-header { display: flex; align-items: center; margin-bottom: 12px; gap: 8px; }
+        .prompt-scenario { font-size: 13px; color: #7d8590; font-weight: 500; }
+        .prompt-text {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: #f0f6fc;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+        .prompt-context {
+            font-size: 12px;
+            color: #484f58;
+            margin-top: 8px;
+        }
+        .prompt-context code {
+            background: #21262d;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            color: #7d8590;
+        }
+        .expected {
+            font-size: 12px;
+            color: #3fb950;
+            margin-top: 8px;
+        }
+        .expected::before { content: "Expected: "; font-weight: 600; }
+        .timestamp { font-size: 11px; color: #484f58; font-family: 'SF Mono', monospace; }
+        .section-intro { font-size: 14px; color: #7d8590; margin-bottom: 20px; line-height: 1.6; }
+        .divider { border: none; border-top: 1px solid #21262d; margin: 40px 0; }
+        .usage-note {
+            background: #1c2128;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 32px;
+            font-size: 13px;
+            color: #7d8590;
+            line-height: 1.6;
+        }
+        .usage-note strong { color: #e6edf3; }
+        .copy-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: #7d8590;
+            cursor: pointer;
+            float: right;
+        }
+        .copy-btn:hover { background: #30363d; color: #e6edf3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DevOps Agent Demo — Investigation Prompts</h1>
+        <p class="subtitle">Persona-specific prompts for live demo based on validated test results (2026-05-26)</p>
+
+        <div class="usage-note">
+            <strong>How to use:</strong> Inject the fault, wait for alarms to fire (1-2 min), then paste the prompt into the DevOps Agent space. The prompts are written as a real engineer would phrase them — natural language, not overly technical. Each includes the expected agent behavior so you know what "good" looks like.
+        </div>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <h2 style="color: #58a6ff;">Space 1: DevOps Team (SRE Persona)</h2>
+        <p class="section-intro">These prompts reference real incidents that occurred on 2026-05-28. The catalog CPU starvation produced alarms starting at ~22:08 UTC, with CPU pinned at 100% for over 10 minutes.</p>
+
+        <h3>Triage — Multiple Alarms Firing</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-sre">SRE</span>
+                <span class="prompt-scenario">Multiple alarms fired around 22:08-22:14 UTC on May 28th</span>
+            </div>
+            <div class="prompt-text">
+                We had multiple alarms fire on May 28th starting around 22:08 UTC — the catalog CPU anomaly alarm went off first, then catalog-cpu-high fired at 22:14 UTC, and the carts CPU anomaly also triggered. Are these all the same root cause or separate issues? Can you investigate what happened between 22:00 and 22:25 UTC?
+            </div>
+            <div class="prompt-context"><code>Cluster: retail-store-ecs-cluster</code> <code>Time: 2026-05-28T22:00Z - 2026-05-28T22:25Z</code></div>
+            <div class="expected">Agent identifies 2 root causes: catalog CPU starvation (task def change at 22:02 adding a cpu-stress-injector sidecar), and a separate cart issue (memory-leak-injector sidecar added at 22:03).</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-sre">SRE</span>
+                <span class="prompt-scenario">Task definition investigation</span>
+            </div>
+            <div class="prompt-text">
+                The catalog service CPU went from normal (~1.5%) to 100% at exactly 22:02 UTC on May 28th. Something changed. Can you check the ECS task definition history for the catalog service and tell me what was different in the deployment that went out at that time?
+            </div>
+            <div class="prompt-context"><code>Service: catalog</code> <code>Task def: retail-store-ecs-catalog:11 (faulted) vs :9 (original)</code></div>
+            <div class="expected">Agent compares task definitions, finds the cpu-stress-injector container was added with 900/1024 CPU units allocated, leaving only 64 for the actual catalog service.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-sre">SRE</span>
+                <span class="prompt-scenario">Cart service anomaly</span>
+            </div>
+            <div class="prompt-text">
+                Around the same time as the catalog issue, the carts service also started behaving strangely — the CPU anomaly alarm fired. Was this caused by the same change, or is this a separate problem? Check the carts task definition for any recent changes.
+            </div>
+            <div class="prompt-context"><code>Service: carts</code> <code>Task def: retail-store-ecs-carts:12 (faulted) vs :10 (original)</code></div>
+            <div class="expected">Agent confirms separate root cause — a memory-leak-injector sidecar was added to the carts task definition at 22:03 UTC, independent of the catalog change.</div>
+        </div>
+
+        <h3>Remediation</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-sre">SRE</span>
+                <span class="prompt-scenario">Rollback verification</span>
+            </div>
+            <div class="prompt-text">
+                Both services were rolled back at 22:24 UTC. Can you confirm the catalog and carts services are now running healthy task definitions without the injected sidecars? Are all alarms back to OK?
+            </div>
+            <div class="prompt-context"><code>Rollback: 2026-05-28T22:24:16Z</code> <code>Restored: catalog:9, carts:10</code></div>
+            <div class="expected">Agent checks current task definitions, confirms no stress/leak containers, verifies services are 1/1 running, and alarms have returned to OK.</div>
+        </div>
+
+        <h3>DynamoDB Stress (May 26th)</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-sre">SRE</span>
+                <span class="prompt-scenario">Anomalous DynamoDB activity from 2 days ago</span>
+            </div>
+            <div class="prompt-text">
+                I noticed the DynamoDB consumed write capacity for the retail-store-ecs-carts table spiked to ~850 WCU/min around 22:12 UTC on May 26th. That's way above our normal baseline of near zero. The spike lasted about 50 minutes. What was causing that? Was it a load test or something unexpected?
+            </div>
+            <div class="prompt-context"><code>Table: retail-store-ecs-carts</code> <code>Time: 2026-05-26T22:12Z - 2026-05-26T23:02Z</code></div>
+            <div class="expected">Agent checks DynamoDB metrics, ECS task history, identifies the dynamodb-stress Fargate task (70 concurrent threads) that ran during that window.</div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ═══════════════════════════════════════════ -->
+        <h2 style="color: #f0883e;">Space 2: Security Team (Security Engineer Persona)</h2>
+        <p class="section-intro">No injection needed — findings already exist. These prompts simulate a security engineer doing their weekly review or responding to a compliance audit.</p>
+
+        <h3>Triage &amp; Prioritization</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-security">Security Engineer</span>
+                <span class="prompt-scenario">Starting a security review</span>
+            </div>
+            <div class="prompt-text">
+                What are the most critical security findings in our environment right now? I want to know what has the highest blast radius and what I should fix first.
+            </div>
+            <div class="expected">Agent pulls Security Hub findings, prioritizes EC2.19 CRITICAL (unrestricted SG access) as highest blast radius, groups related findings.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-security">Security Engineer</span>
+                <span class="prompt-scenario">Investigating SG exposure</span>
+            </div>
+            <div class="prompt-text">
+                I see we have CRITICAL findings for security groups allowing unrestricted access. Which ECS services are affected? What ports are exposed and to what CIDR ranges? Give me the specific security group IDs.
+            </div>
+            <div class="prompt-context"><code>EC2.19</code> <code>sg-07cb4b46e720324b3 (carts)</code> <code>sg-0a43145ceb575a375</code></div>
+            <div class="expected">Agent lists the affected SGs, maps them to ECS services, identifies port 8080 open to 0.0.0.0/0, recommends scoping to VPC CIDR or specific SGs.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-security">Security Engineer</span>
+                <span class="prompt-scenario">IAM policy review</span>
+            </div>
+            <div class="prompt-text">
+                We got flagged for IAM policies with wildcard permissions. The retail-store-ecs-carts-dynamo policy is using dynamodb:* — is that actually needed? What DynamoDB actions does the carts service actually use?
+            </div>
+            <div class="expected">Agent examines the policy, checks CloudTrail for actual API calls made by the carts task role, recommends a least-privilege policy with only the actions actually used.</div>
+        </div>
+
+        <h3>Vulnerability Management</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-security">Security Engineer</span>
+                <span class="prompt-scenario">Container CVE triage</span>
+            </div>
+            <div class="prompt-text">
+                Inspector found CVEs in our container images. What's the severity breakdown? Are any of these actively exploitable in our environment, or are they in packages we don't actually use at runtime?
+            </div>
+            <div class="prompt-context"><code>CVE-2026-32283 (go/stdlib, HIGH)</code> <code>retail-store-catalog image</code></div>
+            <div class="expected">Agent lists CVEs by severity, identifies which are in the catalog image, assesses exploitability based on the service's network exposure and runtime context.</div>
+        </div>
+
+        <h3>Behavioral Threats</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-security">Security Engineer</span>
+                <span class="prompt-scenario">GuardDuty investigation</span>
+            </div>
+            <div class="prompt-text">
+                GuardDuty flagged an "Impact:IAMUser/AnomalousBehavior" finding with severity 8. What APIs were being called anomalously? Is this an actual threat or was it expected activity like a load test?
+            </div>
+            <div class="expected">Agent examines the GuardDuty finding details, identifies the anomalous API patterns, correlates with the DynamoDB stress activity timeline.</div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ═══════════════════════════════════════════ -->
+        <h2 style="color: #a371f7;">Space 3: Networking Team (Network Engineer Persona)</h2>
+        <p class="section-intro">Inject ONE fault at a time, then use the matching prompt. Each tests the agent's ability to trace the network path and identify the failure layer.</p>
+
+        <h3>Scenario A: TGW Route Blackhole</h3>
+        <p class="prompt-context" style="margin-bottom: 12px;">Inject: <code>./fault-injection/ecs-inject-tgw-route-drop.sh</code></p>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">After connectivity alarm fires</span>
+            </div>
+            <div class="prompt-text">
+                The cross-VPC connectivity alarm just fired. Our app can't reach the partner service at 10.1.10.163. Can you trace the network path from the app VPC through the transit gateway to the partner VPC and tell me where it's breaking?
+            </div>
+            <div class="expected">Agent traces: app VPC route table → TGW attachment → TGW route table → finds blackhole route for 10.1.0.0/16. Identifies the static blackhole replacing the propagated route.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">Follow-up: looking at flow logs</span>
+            </div>
+            <div class="prompt-text">
+                Check the TGW flow logs — are packets even reaching the transit gateway, or are they being dropped before that? I want to confirm this is a routing issue and not a security group problem.
+            </div>
+            <div class="prompt-context"><code>Log group: /aws/tgw/networking-demo</code> <code>TGW: tgw-01096907d4648d941</code></div>
+            <div class="expected">Agent queries TGW flow logs, notes absence of traffic to 10.1.0.0/16 after the blackhole was created (vs active traffic before), confirming routing-layer failure.</div>
+        </div>
+
+        <h3>Scenario B: DNS Failure</h3>
+        <p class="prompt-context" style="margin-bottom: 12px;">Inject: <code>./fault-injection/ecs-inject-dns-failure.sh</code></p>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">DNS alarm fires but IP connectivity is fine</span>
+            </div>
+            <div class="prompt-text">
+                The DNS connectivity alarm fired but the direct IP connectivity check is still passing. So the network path works but DNS resolution for api.partner.internal is broken. Can you check the Route53 private hosted zone and the resolver query logs to see what's going on?
+            </div>
+            <div class="prompt-context"><code>PHZ: partner.internal (Z05579592LTL36F75RLS5)</code> <code>Resolver logs: /aws/route53resolver/networking-demo</code></div>
+            <div class="expected">Agent checks the PHZ, finds missing A records, confirms via resolver query logs showing NXDOMAIN responses for api.partner.internal.</div>
+        </div>
+
+        <h3>Scenario C: NLB Target Down</h3>
+        <p class="prompt-context" style="margin-bottom: 12px;">Inject: <code>./fault-injection/ecs-inject-nlb-failure.sh</code></p>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">NLB unhealthy alarm</span>
+            </div>
+            <div class="prompt-text">
+                The partner-service-nlb is showing unhealthy targets. The NLB health check is failing. Is the partner EC2 instance still running? Can you check the target group health and the instance status in the networking account?
+            </div>
+            <div class="expected">Agent checks NLB target health (unhealthy), examines partner EC2 instance state (stopped), identifies the root cause as the backend being down rather than a network path issue.</div>
+        </div>
+
+        <h3>Scenario D: Security Group Block</h3>
+        <p class="prompt-context" style="margin-bottom: 12px;">Inject: <code>./fault-injection/ecs-inject-tgw-sg-block.sh</code></p>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">Connectivity down but TGW looks healthy</span>
+            </div>
+            <div class="prompt-text">
+                Cross-VPC connectivity is down again but when I look at the transit gateway route table, the routes look correct — no blackholes. Packets seem to be reaching the partner VPC. Can you check the VPC flow logs in the partner VPC for any REJECT entries? Maybe something changed in the security groups.
+            </div>
+            <div class="prompt-context"><code>VPC flow logs: /aws/vpc/networking-demo-partner</code> <code>Partner SG: sg-0c4f12bf1bc479afe</code></div>
+            <div class="expected">Agent queries VPC flow logs, finds REJECT entries for traffic from 10.0.x.x to 10.1.10.163:80, examines the partner security group, identifies missing ingress rule for the app VPC CIDR.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">Distinguishing from TGW blackhole</span>
+            </div>
+            <div class="prompt-text">
+                How can I tell the difference between a TGW routing issue and a security group issue? Show me the evidence from both the TGW flow logs and the VPC flow logs that proves this is a security group problem.
+            </div>
+            <div class="expected">Agent shows TGW flow logs have OK/ACCEPT entries (traffic passes through TGW successfully) while VPC flow logs show REJECT (blocked at destination SG). This proves routing works but SG blocks.</div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ═══════════════════════════════════════════ -->
+        <h2 style="color: #7d8590;">Historical Investigation Prompts (No Injection Needed)</h2>
+        <p class="section-intro">All prompts above are already historical — they reference real incidents from 2026-05-26 and 2026-05-28. Below are additional post-incident review prompts for the networking tests.</p>
+
+        <h3>Networking Incidents (May 26th)</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">TGW blackhole — post-incident review</span>
+            </div>
+            <div class="prompt-text">
+                We had a cross-VPC connectivity outage on May 26th around 16:13 UTC that lasted about 2 minutes. Can you look at the TGW flow logs and CloudWatch alarms from that window and tell me what happened?
+            </div>
+            <div class="prompt-context"><code>Time: 2026-05-26T16:13Z - 2026-05-26T16:15Z</code> <code>Alarm: networking-demo-cross-vpc-connectivity-down</code></div>
+            <div class="expected">Agent queries the time window, finds the TGW blackhole route event, correlates with the connectivity alarm state transition.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">DNS incident — post-incident review</span>
+            </div>
+            <div class="prompt-text">
+                On May 26th between 16:25 and 16:41 UTC, the DNS connectivity alarm was firing but IP connectivity was fine. What do the Route53 Resolver logs show for that period? Were there NXDOMAIN responses?
+            </div>
+            <div class="prompt-context"><code>Time: 2026-05-26T16:25Z - 2026-05-26T16:41Z</code> <code>Log: /aws/route53resolver/networking-demo</code></div>
+            <div class="expected">Agent queries resolver logs for that window, finds NXDOMAIN responses for api.partner.internal, confirms DNS-layer failure while network path remained healthy.</div>
+        </div>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-network">Network Engineer</span>
+                <span class="prompt-scenario">SG block — post-incident review</span>
+            </div>
+            <div class="prompt-text">
+                Around 16:47 UTC on May 26th, cross-VPC connectivity dropped again for about 5 minutes. This time the TGW flow logs show traffic WAS reaching the gateway. Can you check the VPC flow logs in the partner VPC from that window and tell me if there were REJECT entries?
+            </div>
+            <div class="prompt-context"><code>Time: 2026-05-26T16:47Z - 2026-05-26T16:52Z</code> <code>VPC logs: /aws/vpc/networking-demo-partner</code></div>
+            <div class="expected">Agent finds REJECT entries in VPC flow logs for traffic from 10.0.x.x to 10.1.10.163:80. TGW logs show OK (traffic passed TGW). Concludes SG-layer failure.</div>
+        </div>
+
+        <h3>DevOps Incidents (May 28th)</h3>
+
+        <div class="prompt-card">
+            <div class="prompt-header">
+                <span class="persona-badge persona-sre">SRE</span>
+                <span class="prompt-scenario">Full incident timeline</span>
+            </div>
+            <div class="prompt-text">
+                Can you give me a full timeline of what happened to the retail-store-ecs-cluster between 22:00 and 22:25 UTC on May 28th? I want to see all alarm state changes, any ECS deployments, and task definition changes during that window.
+            </div>
+            <div class="prompt-context"><code>Cluster: retail-store-ecs-cluster</code> <code>Time: 2026-05-28T22:00Z - 2026-05-28T22:25Z</code></div>
+            <div class="expected">Agent builds timeline: 22:02 catalog task def changed (cpu-stress-injector added), 22:03 carts task def changed (memory-leak-injector added), 22:08 catalog-cpu-anomaly fires, 22:14 catalog-cpu-high fires, 22:24 both rolled back.</div>
+        </div>
+
+        <hr class="divider">
+        <p style="text-align: center; font-size: 11px; color: #484f58; margin-top: 20px;">
+            Generated 2026-05-28 — Based on validated test results from 2026-05-26 (networking) and 2026-05-28 (DevOps)
+        </p>
+    </div>
+</body>
+</html>

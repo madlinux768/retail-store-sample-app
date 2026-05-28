@@ -34,11 +34,11 @@ MODIFIED=$(echo "$CURRENT_TASK_DEF" | jq 'del(.taskDefinitionArn, .revision, .st
 # Task total is 2048 MiB. We allocate tight limits so the leak sidecar causes OOM.
 LEAK_CONTAINER='{
   "name": "memory-leak-injector",
-  "image": "public.ecr.aws/amazonlinux/amazonlinux:2023-minimal",
+  "image": "public.ecr.aws/docker/library/python:3.11-slim",
   "cpu": 64,
   "memoryReservation": 256,
   "essential": true,
-  "command": ["sh", "-c", "i=0; while true; do dd if=/dev/zero of=/dev/shm/leak_$i bs=1M count=10 2>/dev/null; i=$((i+1)); sleep 3; done"],
+  "command": ["python3", "-c", "import time\ndata=[]\nwhile True:\n data.append(bytes(10*1024*1024))\n print(f\"Allocated {len(data)*10}MB\")\n time.sleep(3)"],
   "logConfiguration": {
     "logDriver": "awslogs",
     "options": {
@@ -46,9 +46,6 @@ LEAK_CONTAINER='{
       "awslogs-region": "'"$AWS_REGION"'",
       "awslogs-stream-prefix": "fault-injection"
     }
-  },
-  "linuxParameters": {
-    "sharedMemorySize": 512
   }
 }'
 
@@ -64,7 +61,7 @@ MODIFIED=$(echo "$MODIFIED" | jq --argjson leak "$LEAK_CONTAINER" '
   ]')
 
 echo "  Memory allocation: carts-service=768 soft, leak-injector=256 soft (will grow to OOM)"
-echo "  Leak container writes 10MB to /dev/shm every 3 seconds"
+echo "  Leak container allocates 10MB to heap every 3 seconds until OOMKill"
 
 echo ""
 echo "[3/4] Registering faulted task definition..."

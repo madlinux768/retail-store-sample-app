@@ -35,11 +35,11 @@ MODIFIED=$(echo "$CURRENT_TASK_DEF" | jq 'del(.taskDefinitionArn, .revision, .st
 # The task has 1024 CPU units total. We give stress-ng 900 and leave 124 for everything else.
 STRESS_CONTAINER='{
   "name": "cpu-stress-injector",
-  "image": "public.ecr.aws/amazonlinux/amazonlinux:2023-minimal",
+  "image": "public.ecr.aws/docker/library/python:3.11-slim",
   "cpu": 900,
   "memory": 128,
   "essential": false,
-  "command": ["sh", "-c", "yum install -y stress-ng > /dev/null 2>&1 && stress-ng --cpu 4 --cpu-load 100 --timeout 0"],
+  "command": ["python3", "-c", "import multiprocessing,time\ndef burn():\n while True: pass\nfor _ in range(4): multiprocessing.Process(target=burn,daemon=True).start()\nwhile True: time.sleep(60)"],
   "logConfiguration": {
     "logDriver": "awslogs",
     "options": {
