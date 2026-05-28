@@ -262,6 +262,24 @@
                     <excludes>**/sample/events/**/*</excludes>
 				</configuration>
 			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!--
+                          Satisfy the AWS SDK default region provider chain
+                          when tests instantiate AWS clients in CI runners
+                          that have no AWS_REGION env var, ~/.aws/config, or
+                          EC2 IMDS available. Production deployments resolve
+                          the region naturally (ECS task metadata, Fargate
+                          environment, IAM Roles for Service Accounts, etc.)
+                          so this is scoped to the test JVM only.
+                        -->
+                        <aws.region>us-east-1</aws.region>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
