@@ -83,3 +83,8 @@ variable "application_signals_slos_enabled" {
   description = "Enable Application Signals SLOs (requires services to be discovered by Application Signals first)"
   default     = false
 }
+variable "azure_servicebus_enabled" {
+  type        = bool
+  description = "Gate Azure Service Bus monitoring resources (e.g. the OrdersAzurePublishFailures alarm). Default false keeps the flag-off path a no-op."
+  default     = false
+}
