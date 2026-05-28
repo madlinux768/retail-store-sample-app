@@ -52,7 +52,7 @@ variable "allowed_ips" {
   type        = list(string)
   description = "List of IP addresses (CIDR notation) allowed to access the application via ALB"
   default     = []
-  
+
   validation {
     condition     = length(var.allowed_ips) > 0
     error_message = "At least one IP address must be specified in allowed_ips"
@@ -87,4 +87,16 @@ variable "application_signals_slos_enabled" {
   type        = bool
   default     = false
   description = "Enable Application Signals SLOs (requires services to be discovered first)"
+}
+
+variable "azure_servicebus_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable the Azure Service Bus messaging provider for the orders service. When false the AWS-side plan is byte-identical to today; no Azure resources are created and no Azure auth is required at apply time."
+}
+
+variable "azure_subscription_id" {
+  type        = string
+  default     = "fc9c11a5-8e06-4a8f-a173-2cfa7972f511"
+  description = "Azure subscription ID used by the azurerm provider. Required even when azure_servicebus_enabled is false because the azurerm 4.x provider validates this argument at init. The default points at the demo subscription documented in .kiro/specs/azure-service-bus-messaging-provider."
 }

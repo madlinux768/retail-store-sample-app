@@ -6,13 +6,13 @@ resource "aws_wafv2_ip_set" "allowed_ips" {
   name               = "${var.environment_name}-allowed-ips"
   scope              = "REGIONAL"
   ip_address_version = "IPV4"
-  
+
   addresses = var.allowed_ips
 
   tags = {
-    Name                = "${var.environment_name}-allowed-ips"
-    created-by          = "retail-store-sample-app"
-    environment-name    = var.environment_name
+    Name             = "${var.environment_name}-allowed-ips"
+    created-by       = "retail-store-sample-app"
+    environment-name = var.environment_name
   }
 }
 
@@ -54,9 +54,9 @@ resource "aws_wafv2_web_acl" "alb" {
   }
 
   tags = {
-    Name                = "${var.environment_name}-alb-acl"
-    created-by          = "retail-store-sample-app"
-    environment-name    = var.environment_name
+    Name             = "${var.environment_name}-alb-acl"
+    created-by       = "retail-store-sample-app"
+    environment-name = var.environment_name
   }
 }
 
