@@ -11,6 +11,7 @@ It provides:
 - ECS Service Connect to handle traffic between services
 - Optional OpenTelemetry integration for observability
 - Configurable Container Insights settings
+- Optional Azure Service Bus messaging provider for the orders service (cross-cloud demo, off by default)
 
 NOTE: This will create resources in your AWS account which will incur costs. You are responsible for these costs, and should understand the resources being created before proceeding.
 
@@ -38,6 +39,32 @@ terraform output -raw application_url
 ```
 
 Enter the URL in a web browser to access the application.
+
+## Azure Service Bus Cross-Cloud Demo
+
+This stack can optionally provision an Azure Service Bus namespace and configure the orders service to publish events to it instead of the in-AWS messaging provider. The feature is gated by `azure_servicebus_enabled` (default `false`); the AWS-side plan is byte-identical to the flag-off case when the flag is off.
+
+Pre-requisites:
+
+- Azure CLI installed locally
+- Authenticated against the demo subscription:
+
+  ```shell
+  az login
+  az account set --subscription fc9c11a5-8e06-4a8f-a173-2cfa7972f511
+  ```
+
+To enable, set the following in `terraform.tfvars`:
+
+```hcl
+azure_servicebus_enabled = true
+```
+
+Then run `terraform plan` and `terraform apply` as usual. The plan should add one Azure resource group, one Service Bus namespace (sku=Basic), one queue, one send-only SAS rule, plus an AWS Secrets Manager secret holding the connection string and an IAM policy update granting the orders task role read access to that secret.
+
+To disable, set `azure_servicebus_enabled = false` (or remove the line) and apply. Azure resources are destroyed; AWS state returns to the byte-identical baseline.
+
+See `.kiro/specs/azure-service-bus-messaging-provider/` for the full design.
 
 ## Reference
 
