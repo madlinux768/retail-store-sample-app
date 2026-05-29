@@ -5,6 +5,12 @@ management:
         include: info,health,metrics,prometheus
   endpoint:
     health:
+      # Expose per-component status + details at /actuator/health (and at
+      # /actuator/health/<component>) so operators and the DevOps Agent can see
+      # the azureServiceBus indicator's queue/errorClass details. The custom
+      # indicators surface only safe values (e.g. errorClass simple name) — see
+      # AzureServiceBusHealthIndicator.health() for the R5.3 invariant.
+      show-details: always
       group:
         # Readiness group used by the ECS container health check. Limited to
         # indicators that are cheap and local: the JDBC connection pool (db)

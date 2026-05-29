@@ -42,10 +42,10 @@ import org.springframework.context.ApplicationContext;
  *
  * <p>The connection string and queue name use Microsoft's documented
  * placeholder hostname {@code test.servicebus.windows.net} and a fake
- * SharedAccessKey. The Azure SDK clients ({@code ServiceBusSenderClient},
- * {@code ServiceBusAdministrationClient}) instantiated by
- * {@link AzureServiceBusMessagingConfig} are lazy at the network layer,
- * so bean creation succeeds without any live Azure connectivity.
+ * SharedAccessKey. The Azure SDK {@code ServiceBusSenderClient}
+ * instantiated by {@link AzureServiceBusMessagingConfig} is lazy at the
+ * network layer, so bean creation succeeds without any live Azure
+ * connectivity.
  */
 @SpringBootTest(
   properties = {

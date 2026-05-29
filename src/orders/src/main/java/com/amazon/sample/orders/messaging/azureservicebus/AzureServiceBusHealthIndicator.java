@@ -18,58 +18,80 @@
 
 package com.amazon.sample.orders.messaging.azureservicebus;
 
-import com.azure.messaging.servicebus.administration.ServiceBusAdministrationClient;
-import com.azure.messaging.servicebus.administration.models.QueueRuntimeProperties;
+import com.azure.messaging.servicebus.ServiceBusSenderClient;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 
 /**
  * Spring Boot Actuator {@link HealthIndicator} for Azure Service Bus.
  *
- * <p>Reports {@code UP} when {@link ServiceBusAdministrationClient#getQueueRuntimeProperties(String)}
- * succeeds against the configured queue, exposing {@code queue} and
- * {@code activeMessageCount} as details. Reports {@code DOWN} on any
- * exception, exposing only {@code queue} and {@code errorClass}.
+ * <p>Probes connectivity by calling
+ * {@link ServiceBusSenderClient#createMessageBatch()} on the cached sender
+ * the {@link AzureServiceBusMessagingProvider} already uses. This is
+ * deliberate:
  *
- * <p>The connection string and any {@code SharedAccessKey} substring are
- * deliberately never included in the health detail (requirement 5.3): the
- * raw exception message and stack trace can wrap connection-string fragments
- * coming from the Azure SDK, so we surface only the safe class name.
+ * <ul>
+ *   <li><b>R3.5 — Send-only SAS compatible.</b> The queue authorization rule
+ *       provisioned by the Terraform module grants {@code send=true,
+ *       listen=false, manage=false}. A Manage probe (such as
+ *       {@code ServiceBusAdministrationClient.getQueueRuntimeProperties(...)})
+ *       returns {@code Unauthorized} against that SAS and would force the
+ *       indicator {@code DOWN} even when the publisher path is healthy.
+ *       {@code createMessageBatch()} only requires the send link to be open,
+ *       so it works under Send-only SAS.</li>
+ *   <li><b>R5.2 — same link the publisher uses.</b> The probe exercises the
+ *       same AMQPS link, the same SAS auth, and the same queue routing as
+ *       {@code publishEvent}. {@code UP} therefore truthfully means
+ *       "the publish link is healthy"; this is the semantics R5.2 asks for.
+ *       The probe sends nothing — it only asks the SDK whether a batch can
+ *       be allocated against the open link, so it is free at the wire.</li>
+ * </ul>
+ *
+ * <p>Reports {@code UP} with only a {@code queue} detail (the configured
+ * queue name) on success, satisfying R5.1 and R5.2. {@code activeMessageCount}
+ * is intentionally <em>not</em> exposed: it would require Manage rights
+ * (incompatible with R3.5) and is not required by R5.2.
+ *
+ * <p>Reports {@code DOWN} on any exception, exposing only {@code queue} and
+ * {@code errorClass}. The connection string and any {@code SharedAccessKey}
+ * substring are deliberately never included in the health detail (R5.3): the
+ * Azure SDK's exception messages and stack traces can wrap connection-string
+ * fragments, so we surface only the safe simple class name.
  *
  * <p>This class is registered as a bean by {@code AzureServiceBusMessagingConfig}
- * (task 5) under the bean name {@code azureServiceBus} so it appears under
- * that component name on {@code /actuator/health}. It is intentionally not a
+ * under the bean name {@code azureServiceBus} so it appears under that
+ * component name on {@code /actuator/health}. It is intentionally not a
  * {@code @Component} so it is absent when the active provider is not
- * {@code azureservicebus} (requirement 5.4).
+ * {@code azureservicebus} (R5.4).
  */
 public class AzureServiceBusHealthIndicator implements HealthIndicator {
 
-  private final ServiceBusAdministrationClient admin;
+  private final ServiceBusSenderClient sender;
   private final String queueName;
 
   public AzureServiceBusHealthIndicator(
-    ServiceBusAdministrationClient admin,
+    ServiceBusSenderClient sender,
     String queueName
   ) {
-    this.admin = admin;
+    this.sender = sender;
     this.queueName = queueName;
   }
 
   @Override
   public Health health() {
     try {
-      QueueRuntimeProperties properties = admin.getQueueRuntimeProperties(
-        queueName
-      );
-      return Health.up()
-        .withDetail("queue", queueName)
-        .withDetail("activeMessageCount", properties.getActiveMessageCount())
-        .build();
+      // Probe the cached sender link the publisher uses. Send-only SAS
+      // compatible (R3.5); succeeds iff the AMQPS link, SAS auth, and queue
+      // routing are all healthy (R5.2). Sends nothing.
+      sender.createMessageBatch();
+      return Health.up().withDetail("queue", queueName).build();
     } catch (Exception e) {
+      // Broad catch is intentional: the Azure SDK throws both checked
+      // (e.g. ServiceBusException) and unchecked variants, and we want all
+      // of them to surface as DOWN with the same shape.
       // Never include the connection string, the exception message, or the
-      // stack trace -- any of those could leak `Endpoint=sb://...` or
-      // `SharedAccessKey=...` from a wrapped Azure SDK exception
-      // (requirement 5.3).
+      // stack trace — any of those could leak `Endpoint=sb://...` or
+      // `SharedAccessKey=...` from a wrapped Azure SDK exception (R5.3).
       return Health.down()
         .withDetail("queue", queueName)
         .withDetail("errorClass", e.getClass().getSimpleName())

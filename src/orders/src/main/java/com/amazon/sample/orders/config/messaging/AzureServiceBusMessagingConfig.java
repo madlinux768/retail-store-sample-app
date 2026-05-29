@@ -23,8 +23,6 @@ import com.amazon.sample.orders.messaging.azureservicebus.AzureServiceBusHealthI
 import com.amazon.sample.orders.messaging.azureservicebus.AzureServiceBusMessagingProvider;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusSenderClient;
-import com.azure.messaging.servicebus.administration.ServiceBusAdministrationClient;
-import com.azure.messaging.servicebus.administration.ServiceBusAdministrationClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.cloudwatch2.CloudWatchConfig;
 import io.micrometer.cloudwatch2.CloudWatchMeterRegistry;
@@ -56,13 +54,13 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
  *       string; no transport override is configured (requirement 4.5).</li>
  *   <li>{@link ServiceBusSenderClient} — synchronous sender bound to
  *       {@code properties.getQueueName()}.</li>
- *   <li>{@link ServiceBusAdministrationClient} — used solely by the health
- *       indicator to call {@code getQueueRuntimeProperties}.</li>
  *   <li>{@link MessagingProvider} — the Azure provider wired with the sender,
  *       Jackson {@link ObjectMapper}, {@link MeterRegistry}, and queue
  *       name.</li>
- *   <li>{@code azureServiceBus} {@link HealthIndicator} — Spring uses the
- *       bean name as the health component name, so this surfaces under
+ *   <li>{@code azureServiceBus} {@link HealthIndicator} — probes the cached
+ *       {@link ServiceBusSenderClient} via {@code createMessageBatch()}
+ *       (Send-only SAS compatible). Spring uses the bean name as the health
+ *       component name, so this surfaces under
  *       {@code /actuator/health/azureServiceBus} (requirement 5.1).</li>
  * </ul>
  *
@@ -93,17 +91,6 @@ public class AzureServiceBusMessagingConfig {
 
   private static final String REQUIRED_CONNECTION_STRING_PREFIX =
     "Endpoint=sb://";
-
-  /**
-   * Connection-string clause that scopes a SAS rule to a specific queue
-   * or topic. Present when the SAS rule is created on the entity (queue)
-   * rather than on the namespace. The Azure Service Bus
-   * {@link ServiceBusAdministrationClient} requires a namespace-scoped
-   * connection string and rejects any input containing this clause, so
-   * we strip it before building the admin client. The
-   * {@link ServiceBusSenderClient} accepts both forms.
-   */
-  private static final String ENTITY_PATH_CLAUSE = ";EntityPath=";
 
   /** CloudWatch namespace for orders-service metrics (requirement 6.1). */
   private static final String CLOUDWATCH_NAMESPACE = "RetailStore/Orders";
@@ -163,36 +150,6 @@ public class AzureServiceBusMessagingConfig {
   }
 
   @Bean
-  public ServiceBusAdministrationClient serviceBusAdministrationClient() {
-    // The administration client is built from a separate builder because
-    // ServiceBusClientBuilder does not expose a management client.
-    //
-    // ServiceBusAdministrationClient explicitly rejects entity-scoped
-    // connection strings (those that include ";EntityPath=<queue>"),
-    // which is the form emitted by an azurerm_servicebus_queue_authorization_rule.
-    // Strip that clause so the admin client receives a namespace-only
-    // connection string. The publisher (ServiceBusSenderClient) is
-    // unaffected and continues to use the original entity-scoped value
-    // because it already knows which entity to send to.
-    return new ServiceBusAdministrationClientBuilder()
-      .connectionString(stripEntityPath(properties.getConnectionString()))
-      .buildClient();
-  }
-
-  /**
-   * Removes the optional {@code ;EntityPath=...} suffix from a Service
-   * Bus connection string. Returns the input unchanged when the clause
-   * is absent. Visible for unit testing.
-   */
-  static String stripEntityPath(String connectionString) {
-    if (connectionString == null) {
-      return null;
-    }
-    int idx = connectionString.indexOf(ENTITY_PATH_CLAUSE);
-    return idx < 0 ? connectionString : connectionString.substring(0, idx);
-  }
-
-  @Bean
   public MessagingProvider messagingProvider(
     ServiceBusSenderClient sender,
     ObjectMapper mapper,
@@ -213,9 +170,9 @@ public class AzureServiceBusMessagingConfig {
    */
   @Bean(name = "azureServiceBus")
   public HealthIndicator azureServiceBusHealthIndicator(
-    ServiceBusAdministrationClient admin
+    ServiceBusSenderClient sender
   ) {
-    return new AzureServiceBusHealthIndicator(admin, properties.getQueueName());
+    return new AzureServiceBusHealthIndicator(sender, properties.getQueueName());
   }
 
   /**
