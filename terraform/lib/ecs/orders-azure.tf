@@ -32,7 +32,23 @@ module "azure_servicebus" {
   queue_name          = "orders-events"
   resource_group_name = "${var.environment_name}-orders-rg"
   location            = "westus2"
-  tags                = var.tags
+
+  # The terraform/lib/azure-servicebus module enforces the canonical tag
+  # schema (Environment / Project / auto-delete / ManagedBy). On the AWS
+  # side those names come from provider default_tags rather than var.tags,
+  # so we explicitly construct a canonical tag set here for the Azure
+  # resources. The existing var.tags map (environment-name, created-by,
+  # devopsagent) is merged in so the Azure resources stay searchable
+  # alongside the AWS ones.
+  tags = merge(
+    var.tags,
+    {
+      Environment = var.environment_name
+      Project     = "retail-store"
+      ManagedBy   = "Terraform"
+      auto-delete = "no"
+    },
+  )
 }
 
 resource "aws_secretsmanager_secret" "azure_servicebus" {
