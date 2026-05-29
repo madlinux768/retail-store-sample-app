@@ -11,6 +11,14 @@ module "orders_service" {
   service_discovery_namespace_arn    = aws_service_discovery_private_dns_namespace.this.arn
   cloudwatch_logs_group_id           = aws_cloudwatch_log_group.ecs_tasks.id
   healthcheck_path                   = "/actuator/health"
+  # The orders service has the longest cold-start path of any service in the
+  # stack: Spring Boot + Hikari + Flyway + OTEL Application Signals + Azure
+  # Service Bus SDK init regularly takes 90-120 seconds before the actuator
+  # health endpoint can answer within the 5-second probe timeout. The default
+  # 60-second startPeriod was sufficient pre-Azure but trips the deployment
+  # circuit breaker after task 15 (azure_servicebus_enabled = true). 180
+  # gives headroom without masking real failures.
+  healthcheck_start_period           = 180
   opentelemetry_enabled              = var.opentelemetry_enabled
   deployment_circuit_breaker_enabled = var.deployment_circuit_breaker_enabled
   application_signals_enabled        = var.application_signals_enabled

@@ -69,6 +69,12 @@ variable "healthcheck_path" {
   type        = string
 }
 
+variable "healthcheck_start_period" {
+  description = "Container health check startPeriod in seconds. Grace period before failed health checks count against the container. Increase for services with long startup paths (e.g. extra SDKs)."
+  default     = 60
+  type        = number
+}
+
 variable "cloudwatch_logs_group_id" {
   description = "CloudWatch logs group ID"
   type        = string
