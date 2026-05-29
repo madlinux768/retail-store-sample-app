@@ -3,6 +3,20 @@ management:
     web:
       exposure:
         include: info,health,metrics,prometheus
+  endpoint:
+    health:
+      group:
+        # Readiness group used by the ECS container health check. Limited to
+        # indicators that are cheap and local: the JDBC connection pool (db)
+        # and a trivial ping. Custom indicators such as azureServiceBus are
+        # deliberately excluded because they make a synchronous network call
+        # to a different cloud on every probe; transient latency there must
+        # not trip the ECS deployment circuit breaker. The Azure indicator
+        # remains available at /actuator/health/azureServiceBus for ad-hoc
+        # inspection, and the OrdersAzurePublishFailures CloudWatch alarm
+        # is the enforced safety mechanism for publish failures.
+        readiness:
+          include: db,ping
 
 spring.autoconfigure.exclude:
   - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
