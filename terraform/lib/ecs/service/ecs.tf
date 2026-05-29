@@ -125,7 +125,7 @@ locals {
     healthCheck = {
       command     = ["CMD-SHELL", "curl -f http://localhost:8080${var.healthcheck_path} || exit 1"]
       interval    = 10
-      startPeriod = 60
+      startPeriod = var.healthcheck_start_period
       retries     = 3
       timeout     = 5
     }
