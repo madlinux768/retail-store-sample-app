@@ -94,6 +94,17 @@ public class AzureServiceBusMessagingConfig {
   private static final String REQUIRED_CONNECTION_STRING_PREFIX =
     "Endpoint=sb://";
 
+  /**
+   * Connection-string clause that scopes a SAS rule to a specific queue
+   * or topic. Present when the SAS rule is created on the entity (queue)
+   * rather than on the namespace. The Azure Service Bus
+   * {@link ServiceBusAdministrationClient} requires a namespace-scoped
+   * connection string and rejects any input containing this clause, so
+   * we strip it before building the admin client. The
+   * {@link ServiceBusSenderClient} accepts both forms.
+   */
+  private static final String ENTITY_PATH_CLAUSE = ";EntityPath=";
+
   /** CloudWatch namespace for orders-service metrics (requirement 6.1). */
   private static final String CLOUDWATCH_NAMESPACE = "RetailStore/Orders";
 
@@ -155,9 +166,30 @@ public class AzureServiceBusMessagingConfig {
   public ServiceBusAdministrationClient serviceBusAdministrationClient() {
     // The administration client is built from a separate builder because
     // ServiceBusClientBuilder does not expose a management client.
+    //
+    // ServiceBusAdministrationClient explicitly rejects entity-scoped
+    // connection strings (those that include ";EntityPath=<queue>"),
+    // which is the form emitted by an azurerm_servicebus_queue_authorization_rule.
+    // Strip that clause so the admin client receives a namespace-only
+    // connection string. The publisher (ServiceBusSenderClient) is
+    // unaffected and continues to use the original entity-scoped value
+    // because it already knows which entity to send to.
     return new ServiceBusAdministrationClientBuilder()
-      .connectionString(properties.getConnectionString())
+      .connectionString(stripEntityPath(properties.getConnectionString()))
       .buildClient();
+  }
+
+  /**
+   * Removes the optional {@code ;EntityPath=...} suffix from a Service
+   * Bus connection string. Returns the input unchanged when the clause
+   * is absent. Visible for unit testing.
+   */
+  static String stripEntityPath(String connectionString) {
+    if (connectionString == null) {
+      return null;
+    }
+    int idx = connectionString.indexOf(ENTITY_PATH_CLAUSE);
+    return idx < 0 ? connectionString : connectionString.substring(0, idx);
   }
 
   @Bean
