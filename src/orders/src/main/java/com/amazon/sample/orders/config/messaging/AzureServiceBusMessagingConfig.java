@@ -215,15 +215,10 @@ public class AzureServiceBusMessagingConfig {
       }
     };
 
-    CloudWatchMeterRegistry registry = new CloudWatchMeterRegistry(
+    CloudWatchMeterRegistry registry = new SuffixStrippingCloudWatchMeterRegistry(
       config,
-      Clock.SYSTEM,
       cloudWatchAsyncClient
     );
-
-    // Identity naming so the renamed meter id is published to CloudWatch
-    // verbatim (no dot-to-camel-case mangling).
-    registry.config().namingConvention(NamingConvention.identity);
 
     // Allowlist filter: rename the failures counter and deny everything
     // else so unrelated Micrometer meters (HTTP, JVM, Spring Boot
@@ -250,5 +245,103 @@ public class AzureServiceBusMessagingConfig {
       );
 
     return registry;
+  }
+
+  /**
+   * {@link CloudWatchMeterRegistry} subclass that strips the Micrometer
+   * meter-type suffix (e.g. {@code .count}, {@code .value},
+   * {@code .sum}) from the literal allowlist metric name
+   * {@value #CLOUDWATCH_METRIC_NAME} before the {@link MetricDatum} is
+   * built, so the published CloudWatch metric exactly matches the name
+   * the Terraform alarm watches.
+   *
+   * <p><b>Why this exists.</b> Micrometer's
+   * {@code CloudWatchMeterRegistry.Batch.getMetricName(Meter.Id, String)}
+   * (1.15.3) constructs the published metric name as
+   * {@code id.getName() + "." + suffix} and then runs the result through
+   * {@link NamingConvention#name(String,
+   * io.micrometer.core.instrument.Meter.Type, String)}. The suffix is
+   * appended <i>after</i> our production {@link MeterFilter#map(Meter.Id)}
+   * has already renamed
+   * {@code orders.azure.publish.failures} to
+   * {@value #CLOUDWATCH_METRIC_NAME}, so without this override the
+   * registry would publish the allowlist name with a {@code .count}
+   * suffix appended &mdash; a name the Terraform alarm
+   * {@code retail-store-ecs-orders-azure-publish-failures} (which targets
+   * the unsuffixed metric name with no dimension filter) does not match.
+   *
+   * <p><b>Which meters are affected.</b> Only the renamed allowlist
+   * counter. The {@link MeterFilter} above DENIES every meter whose name
+   * is not {@value #CLOUDWATCH_METRIC_NAME}, so by the time this
+   * convention's {@link NamingConvention#name(String,
+   * io.micrometer.core.instrument.Meter.Type, String)} is invoked, the
+   * input is guaranteed to be either the literal
+   * {@value #CLOUDWATCH_METRIC_NAME} (no suffix needed) or
+   * {@value #CLOUDWATCH_METRIC_NAME} followed by {@code "." + suffix}
+   * appended by {@code Batch.getMetricName}. Names that match neither
+   * form are passed through unchanged, so this override cannot
+   * accidentally rewrite some other meter's name if the allowlist is
+   * ever broadened.
+   *
+   * <p><b>Why suffix removal is safe.</b> The {@link MeterFilter} is the
+   * production source of truth for the published metric name; the
+   * Micrometer-default suffixing is a naming convention that fights the
+   * production design (it presumes a multi-meter Cartesian product like
+   * {@code base.count}, {@code base.sum}, {@code base.avg} — none of
+   * which the orders publisher emits, since only a single
+   * {@link io.micrometer.core.instrument.Counter} is registered, and the
+   * allowlist filter denies everything else).
+   *
+   * <p><b>Why a {@link NamingConvention} and not a
+   * {@code metricData(Counter)} override.</b> In Micrometer 1.15.3
+   * {@code CloudWatchMeterRegistry.metricData()},
+   * {@code CloudWatchMeterRegistry.Batch}, and
+   * {@code Batch.getMetricName(Meter.Id, String)} are all
+   * package-private and cannot be overridden from outside
+   * {@code io.micrometer.cloudwatch2}. The only public override surface
+   * the registry exposes is {@code config().namingConvention(...)}, and
+   * because {@code Batch.getMetricName} routes the already-suffixed name
+   * through that convention, this is the smallest viable Approach A
+   * intercept point for this pinned version.
+   *
+   * @see AzureServiceBusCloudWatchMetricNameTest
+   */
+  static final class SuffixStrippingCloudWatchMeterRegistry
+    extends CloudWatchMeterRegistry {
+
+    private static final String SUFFIX_PREFIX = CLOUDWATCH_METRIC_NAME + ".";
+
+    SuffixStrippingCloudWatchMeterRegistry(
+      CloudWatchConfig config,
+      CloudWatchAsyncClient cloudWatchAsyncClient
+    ) {
+      super(config, Clock.SYSTEM, cloudWatchAsyncClient);
+      // Identity naming for everything else (no dot-to-camel-case
+      // mangling), with one targeted exception: strip the Micrometer
+      // meter-type suffix from the literal allowlist metric name so the
+      // CloudWatch alarm matches.
+      config()
+        .namingConvention(
+          new NamingConvention() {
+            @Override
+            public String name(
+              String name,
+              Meter.Type type,
+              String baseUnit
+            ) {
+              if (name == null) {
+                return null;
+              }
+              if (CLOUDWATCH_METRIC_NAME.equals(name)) {
+                return CLOUDWATCH_METRIC_NAME;
+              }
+              if (name.startsWith(SUFFIX_PREFIX)) {
+                return CLOUDWATCH_METRIC_NAME;
+              }
+              return name;
+            }
+          }
+        );
+    }
   }
 }
