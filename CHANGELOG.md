@@ -1,5 +1,67 @@
 # Changelog
 
+## [1.5.0](https://github.com/madlinux768/retail-store-sample-app/compare/v1.4.0...v1.5.0) (2026-05-30)
+
+
+### Features
+
+* add current state report and pre-demo checklist script ([df501dd](https://github.com/madlinux768/retail-store-sample-app/commit/df501ddcf75a03b22c51c798d84c8297ebaa3be4))
+* add demo prompts with real timestamps, fix injection scripts ([10ae956](https://github.com/madlinux768/retail-store-sample-app/commit/10ae956e72502d78d93f36135092c014e08f3bd0))
+* **ci:** add EKS deploy workflow with S3 remote backend ([4d0985c](https://github.com/madlinux768/retail-store-sample-app/commit/4d0985c98dc6ca53fc4ff355a168defb0aeb5e09))
+* **eks:** attach SSM policy to node groups for tunnel access ([28dd8ec](https://github.com/madlinux768/retail-store-sample-app/commit/28dd8ec97d766a07aaa974045dbb74521531a0cc))
+* **fault-injection:** add all fault injection scripts for 3-space demo ([fbfeea8](https://github.com/madlinux768/retail-store-sample-app/commit/fbfeea89c3d831cacb665f3d21fae9c4319a40e0))
+* **monitoring:** add comprehensive observability for ECS cluster ([62feecd](https://github.com/madlinux768/retail-store-sample-app/commit/62feecddc0722beede6ec2e5effe0e81c9f63060))
+* **monitoring:** enable Application Signals with ADOT auto-instrumentation ([3854d28](https://github.com/madlinux768/retail-store-sample-app/commit/3854d28547c9d5d5554729bc06f6e7de98c03231))
+* **networking:** add comprehensive logging and HTML report ([16b5bb9](https://github.com/madlinux768/retail-store-sample-app/commit/16b5bb936de80f367c71911662cf9090d9f8c3d6))
+* **networking:** add networking-demo module with GitHub Actions CI/CD ([4176b3d](https://github.com/madlinux768/retail-store-sample-app/commit/4176b3d50a1d1722802777a5442e8c2c02d094a9))
+* **observability:** add DevOps Agent support with CloudWatch observability ([a61fdcd](https://github.com/madlinux768/retail-store-sample-app/commit/a61fdcd018ae03c113b1fb9800cae51805e54814))
+* **orders:** add Azure Service Bus messaging provider ([#5](https://github.com/madlinux768/retail-store-sample-app/issues/5)) ([0b8988f](https://github.com/madlinux768/retail-store-sample-app/commit/0b8988fe4ede651226746cc5e03907befa7eab2c))
+
+
+### Bug Fixes
+
+* **checkout:** add missing peer dependencies for Docker build ([66c81a2](https://github.com/madlinux768/retail-store-sample-app/commit/66c81a266ae78e633965efd88ddc90704eaef326))
+* **ci:** disable terraform wrapper to capture plan exit codes ([c4f3a2e](https://github.com/madlinux768/retail-store-sample-app/commit/c4f3a2e67ae9d05169cc61870bc5f699f542b0d4))
+* **ci:** grant full ECR permissions to GitHub Actions role ([687b534](https://github.com/madlinux768/retail-store-sample-app/commit/687b534ce54f9b0722b5d9cabe217241463f9fd1))
+* **ci:** grant full IAM permissions to GitHub Actions role ([6275a33](https://github.com/madlinux768/retail-store-sample-app/commit/6275a3379071075818814bfc0dcab6c0749a0753))
+* **ecs/default:** wire azurerm provider and azure flag into root caller ([#6](https://github.com/madlinux768/retail-store-sample-app/issues/6)) ([8fe151b](https://github.com/madlinux768/retail-store-sample-app/commit/8fe151b9fc3c37895e453b466cbc40d17001d245))
+* **ecs:** bump orders healthcheck startPeriod to 180s ([#11](https://github.com/madlinux768/retail-store-sample-app/issues/11)) ([6fbdf5f](https://github.com/madlinux768/retail-store-sample-app/commit/6fbdf5f794f6d594fb823ce0811b20d97449e716))
+* **ecs:** map AWS lib/tags output to canonical schema for Azure module ([#9](https://github.com/madlinux768/retail-store-sample-app/issues/9)) ([d56266e](https://github.com/madlinux768/retail-store-sample-app/commit/d56266e55e0b99db0c03a3c4e0b6d2644ff08e28))
+* **eks:** align node group scaling config with actual state ([2bf13e0](https://github.com/madlinux768/retail-store-sample-app/commit/2bf13e0e3594dcc177a60621608a6162916cf94b))
+* **logging:** add log4j-layout-template-json and monitoring workflow input ([cf8d7d4](https://github.com/madlinux768/retail-store-sample-app/commit/cf8d7d4388efd845dd50e7c538e2c7dc99f8ced1))
+* **monitoring:** resolve SLO and Contributor Insights apply errors ([a2fbfb5](https://github.com/madlinux768/retail-store-sample-app/commit/a2fbfb5e8a921ab7e0345dce7ec491940e21e0c3))
+* **monitoring:** set deployment.environment for Application Signals ([1b94fbf](https://github.com/madlinux768/retail-store-sample-app/commit/1b94fbfb337cfc95df2397eb8ce21a1e3334158a))
+* **monitoring:** tune memory anomaly detection to reduce false positives ([9f898c9](https://github.com/madlinux768/retail-store-sample-app/commit/9f898c93fd5b46dc31b481dbdf0f28e41ae85dbb))
+* **mq:** ignore user changes on RabbitMQ broker after creation ([40a30c6](https://github.com/madlinux768/retail-store-sample-app/commit/40a30c6d98888f4cf5bdff553be24fb5ea6c7b69))
+* **mq:** use RabbitMQ-compatible instance type mq.m7g.medium ([374b483](https://github.com/madlinux768/retail-store-sample-app/commit/374b483c0c0e0004b3c6bed8d8d92dbd9c56e29c))
+* **networking:** add 60s delay for RAM share propagation before TGW attach ([9c9d5a1](https://github.com/madlinux768/retail-store-sample-app/commit/9c9d5a1908d429376166035caf0e4635738a6634))
+* **networking:** add TGW attachment accepter for cross-org accounts ([64abd93](https://github.com/madlinux768/retail-store-sample-app/commit/64abd931c5a467a4d05609e6fb0ede9de5178949))
+* **networking:** both providers use explicit assume_role ([5b4d7b1](https://github.com/madlinux768/retail-store-sample-app/commit/5b4d7b108395708e1ce69055c41c506c60869014))
+* **networking:** broaden app account role to service-level wildcards ([1588aaf](https://github.com/madlinux768/retail-store-sample-app/commit/1588aaf3db4faf435d23dcffd09e7043c8923c58))
+* **networking:** broaden EC2 read permissions with ec2:Describe* ([e9b41cd](https://github.com/madlinux768/retail-store-sample-app/commit/e9b41cdcad664d346b0cca075129d960e888e1b1))
+* **networking:** clear env credentials so AWS_PROFILE takes effect ([639625a](https://github.com/madlinux768/retail-store-sample-app/commit/639625a2b2ae19892ab19c3541c5cee3d39999f2))
+* **networking:** consolidate to single job for plan+apply ([79402f3](https://github.com/madlinux768/retail-store-sample-app/commit/79402f34d6043ff1fbccd85bfd8b3cf2ed305547))
+* **networking:** look up main route table instead of subnet-associated ([0d09d51](https://github.com/madlinux768/retail-store-sample-app/commit/0d09d512120d68e8d2e12a8407a9be85296ea490))
+* **networking:** make OIDC provider optional in networking CFN template ([e599c55](https://github.com/madlinux768/retail-store-sample-app/commit/e599c550802010c6254c2be28c0d64665bf7d70f))
+* **networking:** pass app route table ID as variable ([84237c6](https://github.com/madlinux768/retail-store-sample-app/commit/84237c6c707a5c9af9aa579d3a7166e913f2ff42))
+* **networking:** pass networking_role_arn as env var in apply job ([a01d0fc](https://github.com/madlinux768/retail-store-sample-app/commit/a01d0fc0078dad69bf2a0dd74b02934daf8a4d15))
+* **networking:** remove failed TGW attachment from state (one-time) ([0ec29d6](https://github.com/madlinux768/retail-store-sample-app/commit/0ec29d6d1638be8185a3d6a2b141f0d37764737f))
+* **networking:** remove invalid quoted heredoc syntax ([7a9da96](https://github.com/madlinux768/retail-store-sample-app/commit/7a9da969674c0e9f64e825fcd27bd007a057e45c))
+* **networking:** remove TGW accepter since auto-accept works ([8ee9533](https://github.com/madlinux768/retail-store-sample-app/commit/8ee9533ed3f64200a440a971aa155429e9e5bbd0))
+* **networking:** simplify to single OIDC + cross-account assume_role ([0fa9bad](https://github.com/madlinux768/retail-store-sample-app/commit/0fa9bad843168d8c034120ff2519be7e8ff69d38))
+* **networking:** strip indentation from AWS credentials file ([d15d03a](https://github.com/madlinux768/retail-store-sample-app/commit/d15d03a87435bd824761513660d504529467036e))
+* **networking:** use aws_route_tables data source for app VPC ([0742a75](https://github.com/madlinux768/retail-store-sample-app/commit/0742a7574f32ef61cca886054ae910a3496831af))
+* **networking:** use ec2:* and ram:* for networking demo role ([0cc1533](https://github.com/madlinux768/retail-store-sample-app/commit/0cc153374dcac1adc66de9f72511be4daef5d51d))
+* **networking:** use python3 http.server instead of httpd ([2803638](https://github.com/madlinux768/retail-store-sample-app/commit/2803638a806f70302759227709bb4e86aca4f4aa))
+* **networking:** use systemd service for partner HTTP server ([093317d](https://github.com/madlinux768/retail-store-sample-app/commit/093317daf985f652c20c6d85887fd57631ee61fa))
+* **orders:** exclude Azure health indicator from ECS readiness probe ([#12](https://github.com/madlinux768/retail-store-sample-app/issues/12)) ([5fe8c58](https://github.com/madlinux768/retail-store-sample-app/commit/5fe8c58b1e844a0c0249a5432f00726126c103c1))
+* **orders:** probe Azure Service Bus health via send link ([#13](https://github.com/madlinux768/retail-store-sample-app/issues/13)) ([2eaed1b](https://github.com/madlinux768/retail-store-sample-app/commit/2eaed1b0c831bb42ea61d74453ff37ec0f66f66d))
+* **orders:** strip EntityPath from connection string for admin client ([#10](https://github.com/madlinux768/retail-store-sample-app/issues/10)) ([80174a1](https://github.com/madlinux768/retail-store-sample-app/commit/80174a16d92e4b8ebc2213c046660c47f9e4cd24))
+* **orders:** strip Micrometer .count suffix from Azure publish-failures metric ([#14](https://github.com/madlinux768/retail-store-sample-app/issues/14)) ([374717f](https://github.com/madlinux768/retail-store-sample-app/commit/374717fb6a13672d9983bfe2058afeaeeb76ee97))
+* **security:** make UI load balancer internal ([7b7cce7](https://github.com/madlinux768/retail-store-sample-app/commit/7b7cce7fcb07d142f29bc5b96f5295ac8d7cb20b))
+* **terraform:** pin VPC module to v5 for AWS provider v5 compatibility ([4614341](https://github.com/madlinux768/retail-store-sample-app/commit/46143412888dca0c8115284e13147ef07b2078bd))
+* **terraform:** relax AWS provider constraint to allow v6 ([22c11fb](https://github.com/madlinux768/retail-store-sample-app/commit/22c11fb867955ed37c38e791acc4367422164d1b))
+
 ## [1.4.0](https://github.com/aws-containers/retail-store-sample-app/compare/v1.3.0...v1.4.0) (2026-01-30)
 
 
